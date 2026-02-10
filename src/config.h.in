@@ -1,0 +1,8 @@
+#ifndef CRAFTOS_CONFIG_H
+#define CRAFTOS_CONFIG_H
+
+#define HAVE_SYS_STAT_H @HAVE_SYS_STAT_H@
+#define HAVE_UNISTD_H @HAVE_UNISTD_H@
+#define HAVE_DIRENT_H @HAVE_DIRENT_H@
+
+#endif
