@@ -55,4 +55,11 @@ struct craftos_api_list {
 /** The global OS function table. */
 extern struct craftos_func F;
 
+/**
+ * Returns the currently running machine instance.
+ * @param L The Lua state to get from
+ * @return The machine for the state
+ */
+extern craftos_machine_t get_comp(struct lua_State *L);
+
 #endif

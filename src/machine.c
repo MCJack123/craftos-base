@@ -24,6 +24,43 @@ extern const luaL_Reg peripheral_lib[];
 extern const luaL_Reg rs_lib[];
 extern const luaL_Reg term_lib[];
 
+// For get_comp
+struct lua_State {
+    void *next; uint8_t tt; uint8_t marked;
+    uint8_t status;
+    void* top;  /* first free slot in the stack */
+    void* l_G;
+    void *ci;  /* call info for current function */
+    const int *oldpc;  /* last pc traced */
+    void* stack_last;  /* last free slot in the stack */
+    void* stack;  /* stack base */
+    int stacksize;
+    unsigned short nny;  /* number of non-yieldable calls in stack */
+    unsigned short nCcalls;  /* number of nested C calls */
+    uint8_t hookmask;
+    uint8_t allowhook;
+    int basehookcount;
+    int hookcount;
+    lua_Hook hook;
+    void *openupval;  /* list of open upvalues in this stack */
+    void *gclist;
+    struct lua_longjmp *errorJmp;  /* current error recover point */
+    ptrdiff_t errfunc;  /* current error handling function (stack index) */
+    void* base_ci;  /* CallInfo for first level (C calling Lua) */
+};
+
+craftos_machine_t get_comp(lua_State *L) {
+    static void* lastG = NULL;
+    static craftos_machine_t lastM = NULL;
+    if (L->l_G != lastG) {
+        lua_getfield(L, LUA_REGISTRYINDEX, "_M");
+        lastM = lua_touserdata(L, -1);
+        lastG = L->l_G;
+        lua_pop(L, 1);
+    }
+    return lastM;
+}
+
 craftos_machine_t craftos_machine_create(const craftos_machine_config_t * config) {
     if (F.timestamp == NULL) return NULL;
     craftos_machine_t machine = F.malloc(sizeof(struct craftos_machine));
@@ -161,6 +198,9 @@ craftos_status_t craftos_machine_run(craftos_machine_t machine) {
             lua_setglobal(coro, apis->name);
             apis = apis->next;
         }
+
+        lua_pushlightuserdata(coro, machine);
+        lua_setfield(coro, LUA_REGISTRYINDEX, "_M");
         
         /* Load the file containing the script we are going to run */
         printf("Loading BIOS...\n");
@@ -246,7 +286,7 @@ int craftos_machine_mount_mmfs(craftos_machine_t machine, const void * src, cons
 }
 
 int craftos_machine_unmount(craftos_machine_t machine, const char * path) {
-    
+
 }
 
 int craftos_machine_peripheral_attach(craftos_machine_t machine, const char * side, const char ** types, const struct luaL_Reg * funcs, void * userp) {

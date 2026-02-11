@@ -23,6 +23,7 @@ MAKE_WRAPPER(FILE*, fopen, (const char * file, const char * mode, craftos_machin
 MAKE_WRAPPER(int, fclose, (FILE *fp, craftos_machine_t machine), (fp))
 MAKE_WRAPPER(size_t, fread, (void * buf, size_t size, size_t count, FILE * fp, craftos_machine_t machine), (buf, size, count, fp))
 MAKE_WRAPPER(size_t, fwrite, (const void * buf, size_t size, size_t count, FILE * fp, craftos_machine_t machine), (buf, size, count, fp))
+MAKE_WRAPPER(int, fflush, (FILE * fp, craftos_machine_t machine), (fp))
 MAKE_WRAPPER(int, fgetc, (FILE * fp, craftos_machine_t machine), (fp))
 MAKE_WRAPPER(int, fputc, (int ch, FILE * fp, craftos_machine_t machine), (ch, fp))
 MAKE_WRAPPER(long, ftell, (FILE * fp, craftos_machine_t machine), (fp))
@@ -144,6 +145,7 @@ int craftos_init(const craftos_func_t functions) {
     WRAP_CHECK(fclose);
     WRAP_CHECK(fread);
     WRAP_CHECK(fwrite);
+    WRAP_CHECK(fflush);
     WRAP_CHECK(fgetc);
     WRAP_CHECK(fputc);
     WRAP_CHECK(ftell);

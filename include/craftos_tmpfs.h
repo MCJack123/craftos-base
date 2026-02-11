@@ -20,6 +20,7 @@
     craftos_tmpfs_fclose,\
     craftos_tmpfs_fread,\
     craftos_tmpfs_fwrite,\
+    craftos_tmpfs_fflush,\
     craftos_tmpfs_fgetc,\
     craftos_tmpfs_fputc,\
     craftos_tmpfs_ftell,\
@@ -40,6 +41,7 @@
     .fclose = craftos_tmpfs_fclose,\
     .fread = craftos_tmpfs_fread,\
     .fwrite = craftos_tmpfs_fwrite,\
+    .fflush = craftos_tmpfs_fflush,\
     .fgetc = craftos_tmpfs_fgetc,\
     .fputc = craftos_tmpfs_fputc,\
     .ftell = craftos_tmpfs_ftell,\
@@ -58,6 +60,7 @@ extern FILE * craftos_tmpfs_fopen(const char * file, const char * mode, craftos_
 extern int craftos_tmpfs_fclose(FILE *fp, craftos_machine_t machine);
 extern size_t craftos_tmpfs_fread(void * buf, size_t size, size_t count, FILE * fp, craftos_machine_t machine);
 extern size_t craftos_tmpfs_fwrite(const void * buf, size_t size, size_t count, FILE * fp, craftos_machine_t machine);
+extern int craftos_tmpfs_fflush(FILE * fp, craftos_machine_t machine);
 extern int craftos_tmpfs_fgetc(FILE * fp, craftos_machine_t machine);
 extern int craftos_tmpfs_fputc(int ch, FILE * fp, craftos_machine_t machine);
 extern long craftos_tmpfs_ftell(FILE * fp, craftos_machine_t machine);

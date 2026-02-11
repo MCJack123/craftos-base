@@ -336,7 +336,7 @@ typedef struct craftos_func {
     /**
      * (Optional) An implementation of C `fwrite` for machine use. If set to NULL,
      * standard `fwrite` will be used instead.
-     * @param buf The buffer to write from
+     * @param buf The buffer to write to
      * @param size The size of the elements in the buffer
      * @param count The number of elements in the buffer
      * @param fp The file pointer to read from
@@ -344,6 +344,15 @@ typedef struct craftos_func {
      * @return The number of elements written out
      */
     size_t (*fwrite)(const void * buf, size_t size, size_t count, FILE * fp, craftos_machine_t machine);
+
+    /**
+     * (Optional) An implementation of C `fflush` for machine use. If set to NULL,
+     * standard `fflush` will be used instead.
+     * @param fp The file pointer to flush from
+     * @param machine The machine operating on the file
+     * @return 0 on success, non-0 on error
+     */
+    int (*fflush)(FILE * fp, craftos_machine_t machine);
 
     /**
      * (Optional) An implementation of C `fgetc` for machine use. If set to NULL,
