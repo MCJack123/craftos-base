@@ -27,7 +27,7 @@
 #endif
 
 #define MOUNT_FLAG_RO 1
-#define MOUNT_FLAG_MMFS 3
+#define MOUNT_FLAG_MMFS 2
 
 struct craftos_mount_list {
     struct craftos_mount_list * next;

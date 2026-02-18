@@ -55,7 +55,8 @@ typedef enum craftos_status {
 
 /** An enum containing sides for redstone interaction. */
 typedef enum craftos_redstone_side {
-    CRAFTOS_REDSTONE_SIDE_TOP,
+    CRAFTOS_REDSTONE_SIDE_INVALID = -1,
+    CRAFTOS_REDSTONE_SIDE_TOP = 0,
     CRAFTOS_REDSTONE_SIDE_BOTTOM,
     CRAFTOS_REDSTONE_SIDE_LEFT,
     CRAFTOS_REDSTONE_SIDE_RIGHT,
@@ -847,7 +848,7 @@ extern void craftos_terminal_render_vga4p(craftos_terminal_t term, void * frameb
  * @param len The length of the text
  * @param colors The color pair to use while writing (top nibble = BG, bottom = FG)
  */
-extern void craftos_terminal_write(craftos_terminal_t term, int x, int y, const char * text, size_t len, unsigned char colors);
+extern void craftos_terminal_write(craftos_terminal_t term, int x, int y, const char * text, int len, unsigned char colors);
 
 /**
  * Draws text to a terminal.

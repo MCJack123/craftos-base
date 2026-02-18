@@ -12,7 +12,7 @@ int fs_handle_close(lua_State *L) {
     FILE ** fp = (FILE**)lua_touserdata(L, lua_upvalueindex(1));
     if (*fp == NULL)
         return luaL_error(L, "attempt to use a closed file");
-    F.free(*fp);
+    F.fclose(*fp, get_comp(L));
     *fp = NULL;
     get_comp(L)->files_open--;
     return 0;
@@ -22,7 +22,7 @@ int fs_handle_gc(lua_State *L) {
     FILE ** fp = (FILE**)lua_touserdata(L, lua_upvalueindex(1));
     if (*fp == NULL)
         return 0;
-    F.free(*fp);
+    F.fclose(*fp, get_comp(L));
     *fp = NULL;
     get_comp(L)->files_open--;
     return 0;
@@ -32,7 +32,7 @@ int fs_handle_readLine(lua_State *L) {
     FILE * fp = *(FILE**)lua_touserdata(L, lua_upvalueindex(1));
     craftos_machine_t machine = get_comp(L);
     unsigned i, j;
-    size_t sz;
+    size_t sz = 0;
     if (fp == NULL) return luaL_error(L, "attempt to use a closed file");
     if (F.feof(fp, machine)) return 0;
     if (F.ferror(fp, machine)) return luaL_error(L, "Could not read file");
@@ -52,7 +52,7 @@ int fs_handle_readLine(lua_State *L) {
         }
         retval = retvaln;
     }
-    size_t len = sz - (sz > 0 && retval[sz-1] == '\n' && !lua_toboolean(L, 1));
+    size_t len = sz - (sz > 0 && retval[sz-1] == '\n' && !lua_toboolean(L, 1) ? 1 : 0);
     if (len == 0 && F.feof(fp, machine)) {F.free(retval); return 0;}
     lua_pushlstring(L, retval, len);
     F.free(retval);

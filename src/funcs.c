@@ -111,7 +111,7 @@ static struct craftos_dirent * wrap_readdir(craftos_DIR * dir, craftos_machine_t
 #if _DIRENT_HAVE_D_NAMLEN
     dr.d_namlen = d->d_namlen;
 #else
-    dr.d_namlen = strlen(dr.d_name);
+    dr.d_namlen = strlen(d->d_name);
 #endif
     strcpy(dr.d_name, d->d_name);
     return &dr;

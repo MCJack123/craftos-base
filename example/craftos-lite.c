@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 static time_t start;
-static SDL_PixelFormatDetails * pixelFormat;
+static const SDL_PixelFormatDetails * pixelFormat;
 
 static double timestamp() {
     return start * 1000 + SDL_GetTicks();
@@ -59,6 +59,7 @@ int main() {
         bios = realloc(bios, sz + 4096);
         size_t read = fread(bios + sz, 1, 4096, fp);
         sz += read;
+        if (read < 4096) bios[sz] = 0;
     }
     fclose(fp);
     craftos_machine_config_t config = {

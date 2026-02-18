@@ -102,7 +102,7 @@ void craftos_terminal_scroll(craftos_terminal_t term, int lines, unsigned char c
     term->changed = 1;
 }
 
-void craftos_terminal_write(craftos_terminal_t term, int x, int y, const char * text, size_t len, unsigned char col) {
+void craftos_terminal_write(craftos_terminal_t term, int x, int y, const char * text, int len, unsigned char col) {
     if (y < 0 || y >= term->height || x >= term->width) return;
     if (x < 0) {
         text += x;

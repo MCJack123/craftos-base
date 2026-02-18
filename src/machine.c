@@ -187,7 +187,7 @@ craftos_status_t craftos_machine_run(craftos_machine_t machine) {
         lua_newtable(coro); luaL_setfuncs(coro, term_lib, 0); lua_setglobal(coro, "term");
         lua_pop(coro, 2);
         
-        lua_pushliteral(coro, "bios.use_multishell=false,shell.autocomplete=false");
+        lua_pushliteral(coro, "");
         lua_setglobal(coro, "_CC_DEFAULT_SETTINGS");
         lua_pushliteral(coro, "ComputerCraft 1.109.2 (CraftOS-Base 1.0)");
         lua_setglobal(coro, "_HOST");
@@ -252,21 +252,21 @@ craftos_status_t craftos_machine_run(craftos_machine_t machine) {
     } else if (status != 0) {
         const char * fullstr = lua_tostring(coro, -1);
         printf("Errored: %s\n", fullstr);
-        lua_close(machine->L);
-        machine->L = machine->coro = machine->eventQueue = NULL;
         craftos_terminal_clear(machine->term, -1, 0xFE);
         craftos_terminal_write_literal(machine->term, 0, 0, "Error running computer", 0xFE);
         craftos_terminal_write_string(machine->term, 0, 1, fullstr, 0xFE);
         craftos_terminal_write_literal(machine->term, 0, 2, "ComputerCraft may be installed incorrectly", 0xFE);
+        lua_close(machine->L);
+        machine->L = machine->coro = machine->eventQueue = NULL;
         machine->running = CRAFTOS_MACHINE_STATUS_SHUTDOWN;
         return CRAFTOS_MACHINE_STATUS_ERROR;
     } else {
         printf("Closing session.\n");
-        lua_close(machine->L);
-        machine->L = machine->coro = machine->eventQueue = NULL;
         craftos_terminal_clear(machine->term, -1, 0xFE);
         craftos_terminal_write_literal(machine->term, 0, 0, "Error running computer", 0xFE);
         craftos_terminal_write_literal(machine->term, 0, 1, "ComputerCraft may be installed incorrectly", 0xFE);
+        lua_close(machine->L);
+        machine->L = machine->coro = machine->eventQueue = NULL;
         return CRAFTOS_MACHINE_STATUS_ERROR;
     }
 }
@@ -369,7 +369,7 @@ int craftos_machine_mount_mmfs(craftos_machine_t machine, const void * src, cons
     }
     for (node = pathc.head, n = 0; node; node = node->next, n++);
     (*mnt)->next = NULL;
-    (*mnt)->flags = MOUNT_FLAG_MMFS;
+    (*mnt)->flags = MOUNT_FLAG_MMFS | MOUNT_FLAG_RO;
     (*mnt)->root_dir = src;
     (*mnt)->mount_path = F.malloc(sizeof(char*) * (n + 1));
     for (n = 0; pathc.head; n++) (*mnt)->mount_path[n] = string_list_shift_str(&pathc);

@@ -16,10 +16,10 @@ static int strall(const char * str, char c) {
 
 void string_list_push(struct string_list * list, const char * str) {
     if (list->head == NULL) {
-        list->head = list->tail = F.malloc(sizeof(struct string_list));
+        list->head = list->tail = F.malloc(sizeof(struct string_list_node));
         list->head->prev = NULL;
     } else {
-        list->tail->next = F.malloc(sizeof(struct string_list));
+        list->tail->next = F.malloc(sizeof(struct string_list_node));
         list->tail->next->prev = list->tail;
         list->tail = list->tail->next;
     }
@@ -103,7 +103,7 @@ int string_split_path(const char * path, struct string_list * pathc, int addExt)
         if (!(c == '"' || c == '*' || c == ':' || c == '<' || c == '>' || c == '?' || c == '|' || c < 32)) *s++ = c;
     }
     *s = 0;
-    for (s = strtok(pathfix, "/\\"); (s = strtok(NULL, "/\\"));) {
+    for (s = strtok(pathfix, "/\\"); s; s = strtok(NULL, "/\\")) {
         if (strncmp(s, "..", 2) == 0 && strall(s + 2, ' ')) {
             if (pathc->head == NULL && addExt) {
                 F.free(pathfix);
@@ -115,7 +115,7 @@ int string_split_path(const char * path, struct string_list * pathc, int addExt)
             while (*s == ' ') s++;
             s2 = s;
             while (*s2++);
-            s2--;
+            s2--; s2--;
             while (*s2 == ' ' && s2 > s) s2--;
             *(s2 + 1) = 0;
             string_list_push(pathc, s);

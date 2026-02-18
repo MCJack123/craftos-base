@@ -83,7 +83,7 @@ static char* fixpath(craftos_machine_t comp, const char * path, int exists, int 
         size_t max_path_n = 0, max_path_l_n = 1;
         const struct craftos_mount_list * max_path_l[8] = {comp->mounts, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
         const struct craftos_mount_list * m;
-        for (m = comp->mounts; m != NULL; m = m->next) {
+        for (m = comp->mounts->next; m != NULL; m = m->next) {
             char** pathlist = m->mount_path;
             int i;
             struct string_list_node * pathc_iter;
@@ -340,34 +340,12 @@ static int fixpath_multiple(craftos_machine_t comp, const char * path, struct fi
 }
 
 static char* normalizePath(const char * basePath, int allowWildcards) {
-    char* s, *s2, *s3;
-    char* cleanPath = F.malloc(1);
-    char* pathfix = F.malloc(strlen(basePath) + 1);
-    *cleanPath = 0;
-    strcpy(pathfix, basePath);
-    for (s = strtok(pathfix, "/\\"); (s = strtok(NULL, "/\\"));) {
-        s2 = F.malloc(strlen(s) + 1);
-        for (s3 = s2; *s; s++) {
-            char c = *s;
-            if (!(c == '"' || c == '*' || c == ':' || c == '<' || c == '>' || c == '?' || c == '|' || c < 32)) *s3++ = c;
-        }
-        /* TODO: space normalization */
-        if (strcmp(s2, "..") == 0) {
-            char* pos = strrchr(cleanPath, '/');
-            if (pos != NULL) *pos = 0;
-            else if (*cleanPath == 0) {
-                F.free(s2);
-                F.free(cleanPath);
-                return NULL;
-            } else *cleanPath = 0;
-        } else if (*s2 != 0 && !(strall(s2, '.') && strlen(s2))) {
-            cleanPath = F.realloc(cleanPath, strlen(cleanPath) + strlen(s2) + 2);
-            if (*cleanPath != 0) strcat(cleanPath, "/");
-            strcat(cleanPath, s2);
-        }
-        F.free(s2);
-    }
-    return cleanPath;
+    /* TODO: wildcards */
+    struct string_list pathc = {NULL, NULL};
+    string_split_path(basePath, &pathc, 0);
+    char* retval = assemblePath("", &pathc);
+    string_list_clear(&pathc);
+    return retval;
 }
 
 static void __noreturn err(lua_State *L, int idx, const char * err) {
@@ -404,8 +382,13 @@ static int fs_list(lua_State *L) {
                     struct craftos_dirent * dir;
                     gotdir = 1;
                     while ((dir = F.readdir(d, machine))) {
-                        lua_pushlstring(L, dir->d_name, dir->d_namlen);
-                        lua_rawseti(L, -2, n++);
+                        int found = 0;
+                        for (j = 0; j < sizeof(ignored_files) / sizeof(ignored_files[0]); j++)
+                            if (strncmp(dir->d_name, ignored_files[j], dir->d_namlen) == 0) {found = 1; break;}
+                        if (!found) {
+                            lua_pushlstring(L, dir->d_name, dir->d_namlen);
+                            lua_rawseti(L, -2, n++);
+                        }
                     }
                     F.closedir(d, machine);
                 }
@@ -799,7 +782,8 @@ static int fs_combine(lua_State *L) {
     }
     char* norm = normalizePath(basePath, 1);
     F.free(basePath);
-    lua_pushstring(L, norm);
+    if (*norm == '/') lua_pushstring(L, norm + 1); /* is this possible? */
+    else lua_pushstring(L, norm);
     F.free(norm);
     return 1;
 }
