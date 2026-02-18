@@ -36,6 +36,7 @@ MAKE_WRAPPER(int, rename, (const char * from, const char * to, craftos_machine_t
 #if HAVE_UNISTD_H
 #include <unistd.h>
 MAKE_WRAPPER(int, mkdir, (const char * path, int mode, craftos_machine_t machine), (path, mode))
+MAKE_WRAPPER(int, access, (const char * path, int flags, craftos_machine_t machine), (path, flags))
 #endif
 
 #if HAVE_SYS_STAT_H
@@ -55,12 +56,42 @@ static int wrap_stat(const char * path, struct craftos_stat * st, craftos_machin
     st->st_size = st2.st_size;
     st->st_blksize = st2.st_blksize;
     st->st_blocks = st2.st_blocks;
+#ifdef st_atime
     st->st_atim.tv_sec = st2.st_atim.tv_sec;
     st->st_atim.tv_nsec = st2.st_atim.tv_nsec;
     st->st_ctim.tv_sec = st2.st_ctim.tv_sec;
     st->st_ctim.tv_nsec = st2.st_ctim.tv_nsec;
     st->st_mtim.tv_sec = st2.st_mtim.tv_sec;
     st->st_mtim.tv_nsec = st2.st_mtim.tv_nsec;
+#else
+    st->st_atim.tv_sec = st2.st_atime;
+    st->st_atim.tv_nsec = st2.st_atimensec;
+    st->st_ctim.tv_sec = st2.st_ctime;
+    st->st_ctim.tv_nsec = st2.st_ctimensec;
+    st->st_mtim.tv_sec = st2.st_mtime;
+    st->st_mtim.tv_nsec = st2.st_mtimensec;
+#endif
+    return 0;
+}
+#endif
+
+#if HAVE_SYS_STATVFS_H
+#include <sys/statvfs.h>
+static int wrap_statvfs(const char * path, struct craftos_statvfs * st, craftos_machine_t machine) {
+    struct statvfs st2;
+    int retval = statvfs(path, &st2);
+    if (retval != 0) return retval;
+    st->f_bsize = st2.f_bsize;
+    st->f_frsize = st2.f_frsize;
+    st->f_blocks = st2.f_blocks;
+    st->f_bfree = st2.f_bfree;
+    st->f_bavail = st2.f_bavail;
+    st->f_files = st2.f_files;
+    st->f_ffree = st2.f_ffree;
+    st->f_favail = st2.f_favail;
+    st->f_fsid = st2.f_fsid;
+    st->f_flag = st2.f_flag;
+    st->f_namemax = st2.f_namemax;
     return 0;
 }
 #endif
@@ -87,6 +118,8 @@ static struct craftos_dirent * wrap_readdir(craftos_DIR * dir, craftos_machine_t
 }
 #endif
 
+
+
 int craftos_init(const craftos_func_t functions) {
     if (
         functions->timestamp == NULL
@@ -94,8 +127,12 @@ int craftos_init(const craftos_func_t functions) {
 #if !HAVE_SYS_STAT_H
         || functions->stat == NULL
 #endif
+#if !HAVE_SYS_STATVFS_H
+        || functions->statvfs == NULL
+#endif
 #if !HAVE_UNISTD_H
         || functions->mkdir == NULL
+        || functions->access == NULL
 #endif
 #if !HAVE_DIRENT_H
         || functions->opendir == NULL
@@ -157,8 +194,12 @@ int craftos_init(const craftos_func_t functions) {
 #if HAVE_SYS_STAT_H
     WRAP_CHECK(stat);
 #endif
+#if HAVE_SYS_STATVFS_H
+    WRAP_CHECK(statvfs);
+#endif
 #if HAVE_UNISTD_H
     WRAP_CHECK(mkdir);
+    WRAP_CHECK(access);
 #endif
 #if HAVE_DIRENT_H
     WRAP_CHECK(opendir);

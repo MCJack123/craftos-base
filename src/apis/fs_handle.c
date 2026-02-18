@@ -15,9 +15,6 @@ int fs_handle_close(lua_State *L) {
     F.free(*fp);
     *fp = NULL;
     get_comp(L)->files_open--;
-#ifdef __EMSCRIPTEN__
-    queueTask([](void*)->void*{emsyncfs(); return NULL;}, NULL, true);
-#endif
     return 0;
 }
 
@@ -28,9 +25,6 @@ int fs_handle_gc(lua_State *L) {
     F.free(*fp);
     *fp = NULL;
     get_comp(L)->files_open--;
-#ifdef __EMSCRIPTEN__
-    queueTask([](void*)->void*{emsyncfs(); return NULL;}, NULL, true);
-#endif
     return 0;
 }
 
@@ -231,9 +225,6 @@ int fs_handle_mmfs_close(lua_State *L) {
     F.free(*fp);
     *fp = NULL;
     get_comp(L)->files_open--;
-#ifdef __EMSCRIPTEN__
-    queueTask([](void*)->void*{emsyncfs(); return NULL;}, NULL, true);
-#endif
     return 0;
 }
 
@@ -244,9 +235,6 @@ int fs_handle_mmfs_gc(lua_State *L) {
     F.free(*fp);
     *fp = NULL;
     get_comp(L)->files_open--;
-#ifdef __EMSCRIPTEN__
-    queueTask([](void*)->void*{emsyncfs(); return NULL;}, NULL, true);
-#endif
     return 0;
 }
 

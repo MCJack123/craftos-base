@@ -31,6 +31,7 @@
     craftos_tmpfs_rename,\
     craftos_tmpfs_mkdir,\
     craftos_tmpfs_stat,\
+    craftos_tmpfs_statvfs,\
     craftos_tmpfs_opendir,\
     craftos_tmpfs_closedir,\
     craftos_tmpfs_readdir
@@ -52,6 +53,7 @@
     .rename = craftos_tmpfs_rename,\
     .mkdir = craftos_tmpfs_mkdir,\
     .stat = craftos_tmpfs_stat,\
+    .statvfs = craftos_tmpfs_statvfs,\
     .opendir = craftos_tmpfs_opendir,\
     .closedir = craftos_tmpfs_closedir,\
     .readdir = craftos_tmpfs_readdir
@@ -71,6 +73,7 @@ extern int craftos_tmpfs_remove(const char * path, craftos_machine_t machine);
 extern int craftos_tmpfs_rename(const char * from, const char * to, craftos_machine_t machine);
 extern int craftos_tmpfs_mkdir(const char * path, int mode, craftos_machine_t machine);
 extern int craftos_tmpfs_stat(const char * path, struct craftos_stat * st, craftos_machine_t machine);
+extern int craftos_tmpfs_statvfs(const char * path, struct craftos_statvfs * st, craftos_machine_t machine);
 extern craftos_DIR * craftos_tmpfs_opendir(const char * path, craftos_machine_t machine);
 extern int craftos_tmpfs_closedir(craftos_DIR * dir, craftos_machine_t machine);
 extern struct craftos_dirent * craftos_tmpfs_readdir(craftos_DIR * dir, craftos_machine_t machine);

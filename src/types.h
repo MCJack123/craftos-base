@@ -13,6 +13,19 @@
 #include <craftos.h>
 #include "config.h"
 
+#if HAVE_SYS_STAT_H
+#define __USE_XOPEN2K8 1
+#include <sys/stat.h>
+#elif !defined(S_ISDIR)
+#define S_ISDIR(mode) (((mode) & 0xF000) == 0x4000)
+#endif
+
+#if HAVE_UNISTD_H
+#include <unistd.h>
+#elif !defined(W_OK)
+#define W_OK 2
+#endif
+
 #define MOUNT_FLAG_RO 1
 #define MOUNT_FLAG_MMFS 3
 
@@ -21,7 +34,7 @@ struct craftos_mount_list {
     char ** mount_path;
     union {
         char * filesystem_path;
-        struct mmfs_mount * root_dir;
+        const struct mmfs_dir * root_dir;
     };
     unsigned char flags;
 };

@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static unsigned int defaultPalette[16] = {
+unsigned int craftos_terminal_defaultPalette[16] = {
     0xf0f0f0,
     0xf2b233,
     0xe57fd8,
@@ -51,7 +51,7 @@ craftos_terminal_t craftos_terminal_create(unsigned int width, unsigned int heig
         F.free(term);
         return NULL;
     }
-    memcpy(term->palette, defaultPalette, 64);
+    memcpy(term->palette, craftos_terminal_defaultPalette, 64);
     for (y = 0; y < 16; y++) term->pixelPalette[y] = F.convertPixelValue(y, (term->palette[y] >> 16) & 0xFF, (term->palette[y] >> 8) & 0xFF, term->palette[y] & 0xFF);
     term->cursorX = 0;
     term->cursorY = 0;
@@ -60,6 +60,7 @@ craftos_terminal_t craftos_terminal_create(unsigned int width, unsigned int heig
     term->canBlink = 1;
     term->paletteChanged = 0;
     term->cursorColor = 15;
+    term->activeColors = 0xF0;
     craftos_terminal_clear(term, -1, 0xF0);
     /* TODO: blink timer */
     return term;

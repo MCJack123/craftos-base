@@ -9,6 +9,7 @@ set(CMAKE_C_EXTENSIONS OFF)
 # Collect source files
 file(GLOB SOURCES "src/*.c" "src/apis/*.c")
 set(LUA_SOURCES
+    craftos2-lua/src/error_info.c
     craftos2-lua/src/lapi.c
     craftos2-lua/src/lcode.c
     craftos2-lua/src/lctype.c
@@ -48,6 +49,7 @@ list(APPEND SOURCES ${LUA_SOURCES})
 # Check for optional headers
 include(CheckIncludeFile)
 check_include_file(sys/stat.h HAVE_SYS_STAT_H)
+check_include_file(sys/statvfs.h HAVE_SYS_STATVFS_H)
 check_include_file(unistd.h HAVE_UNISTD_H)
 check_include_file(dirent.h HAVE_DIRENT_H)
 
@@ -66,6 +68,7 @@ target_include_directories(craftos-base
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/craftos2-lua/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/craftos2-lua/src>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
 
@@ -83,3 +86,5 @@ install(EXPORT craftosbaseTargets
     FILE craftosbaseTargets.cmake
     DESTINATION lib/cmake/craftosbase
 )
+
+add_subdirectory(example)

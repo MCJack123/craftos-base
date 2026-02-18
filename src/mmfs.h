@@ -37,5 +37,6 @@ struct mmfs_fd {
 
 extern const struct mmfs_dir_ent * mmfs_traverse(const struct mmfs_dir * root, const char * path);
 #define mmfs_get_data(root, file) ((const unsigned char *)(root) + (file)->offset)
+#define mmfs_get_dir(root, file) ((const struct mmfs_dir *)((const unsigned char *)(root) + (file)->offset))
 
 #endif

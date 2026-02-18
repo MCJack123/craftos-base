@@ -9,12 +9,15 @@
  */
 
 #include <craftos.h>
+#include "string_list.h"
 #include "terminal.h"
 #include "types.h"
+#include <stdarg.h>
 #include <string.h>
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
+#include <lstate.h>
 
 extern const luaL_Reg fs_lib[];
 extern const luaL_Reg http_lib[];
@@ -24,30 +27,29 @@ extern const luaL_Reg peripheral_lib[];
 extern const luaL_Reg rs_lib[];
 extern const luaL_Reg term_lib[];
 
-// For get_comp
-struct lua_State {
-    void *next; uint8_t tt; uint8_t marked;
-    uint8_t status;
-    void* top;  /* first free slot in the stack */
-    void* l_G;
-    void *ci;  /* call info for current function */
-    const int *oldpc;  /* last pc traced */
-    void* stack_last;  /* last free slot in the stack */
-    void* stack;  /* stack base */
-    int stacksize;
-    unsigned short nny;  /* number of non-yieldable calls in stack */
-    unsigned short nCcalls;  /* number of nested C calls */
-    uint8_t hookmask;
-    uint8_t allowhook;
-    int basehookcount;
-    int hookcount;
-    lua_Hook hook;
-    void *openupval;  /* list of open upvalues in this stack */
-    void *gclist;
-    struct lua_longjmp *errorJmp;  /* current error recover point */
-    ptrdiff_t errfunc;  /* current error handling function (stack index) */
-    void* base_ci;  /* CallInfo for first level (C calling Lua) */
-};
+void _lua_lock(lua_State *L) {
+    if (G(L)->lockstate == 2 || G(L)->lock == NULL) return;
+    F.mutex_lock(G(L)->lock);
+    G(L)->lockstate = 1;
+}
+
+void _lua_unlock(lua_State *L) {
+    if (G(L)->lock == NULL) return;
+    if (G(L)->lockstate != 1 && G(L)->lockstate != 3) {
+        return;
+    }
+    G(L)->lockstate--;
+    F.mutex_unlock(G(L)->lock);
+}
+
+void * _lua_newlock() {
+    if (F.mutex_create != NULL) return F.mutex_create();
+    return NULL;
+}
+
+void _lua_freelock(void * l) {
+    if (l != NULL) F.mutex_destroy(l);
+}
 
 craftos_machine_t get_comp(lua_State *L) {
     static void* lastG = NULL;
@@ -134,7 +136,7 @@ void craftos_machine_destroy(craftos_machine_t machine) {
         while (*ptr) F.free(*ptr++);
         F.free(machine->mounts->mount_path);
         if (machine->mounts->flags & MOUNT_FLAG_MMFS) {
-            // delete mmfs
+            /* delete mmfs */
         } else F.free(machine->mounts->filesystem_path);
         F.free(machine->mounts);
         machine->mounts = next;
@@ -201,10 +203,14 @@ craftos_status_t craftos_machine_run(craftos_machine_t machine) {
 
         lua_pushlightuserdata(coro, machine);
         lua_setfield(coro, LUA_REGISTRYINDEX, "_M");
+        lua_getglobal(coro, "table");
+        lua_getfield(coro, -1, "sort");
+        lua_setfield(coro, LUA_REGISTRYINDEX, "tsort");
+        lua_pop(coro, 1);
         
         /* Load the file containing the script we are going to run */
         printf("Loading BIOS...\n");
-        if (machine->bios) status = luaL_loadstring(coro, machine->bios);
+        if (machine->bios) status = luaL_loadbuffer(coro, machine->bios, strlen(machine->bios), "@bios.lua");
         else status = luaL_loadfile(coro, "/rom/bios.lua"); /* TODO: use wrapped file procedures */
         if (status) {
             /* If something went wrong, error message is at the top of */
@@ -224,11 +230,13 @@ craftos_status_t craftos_machine_run(craftos_machine_t machine) {
         machine->running = CRAFTOS_MACHINE_STATUS_YIELD;
         machine->system_start = F.timestamp();
         printf("Running main coroutine.\n");
+        status = lua_resume(coro, NULL, 0);
+    } else {
+        if (lua_isstring(coro, -1)) narg = getNextEvent(machine, coro, lua_tostring(coro, -1));
+        else narg = getNextEvent(machine, coro, NULL);
+        if (narg < 0) return CRAFTOS_MACHINE_STATUS_YIELD;
+        status = lua_resume(coro, NULL, narg);
     }
-    if (lua_isstring(coro, -1)) narg = getNextEvent(machine, coro, lua_tostring(coro, -1));
-    else narg = getNextEvent(machine, coro, NULL);
-    if (narg < 0) return CRAFTOS_MACHINE_STATUS_YIELD;
-    status = lua_resume(coro, NULL, narg);
     if (status == LUA_YIELD) {
         if (machine->running == CRAFTOS_MACHINE_STATUS_SHUTDOWN || machine->running == CRAFTOS_MACHINE_STATUS_RESTART) {
             lua_close(machine->L);
@@ -240,7 +248,7 @@ craftos_status_t craftos_machine_run(craftos_machine_t machine) {
             return machine->running;
         }
         return CRAFTOS_MACHINE_STATUS_YIELD;
-        //printf("Yield\n");
+        /*printf("Yield\n");*/
     } else if (status != 0) {
         const char * fullstr = lua_tostring(coro, -1);
         printf("Errored: %s\n", fullstr);
@@ -264,7 +272,53 @@ craftos_status_t craftos_machine_run(craftos_machine_t machine) {
 }
 
 int craftos_machine_queue_event(craftos_machine_t machine, const char * event, const char * fmt, ...) {
+    va_list va;
+    size_t sz;
+    void** ptr;
+    char c;
+    lua_State *ev;
 
+    if (machine->eventQueue == NULL) return -1;
+    ev = lua_newthread(machine->eventQueue);
+    lua_pushstring(ev, event);
+    if (fmt != NULL) {
+        va_start(va, fmt);
+        while (*fmt) {
+            switch (*fmt++) {
+                case 'b': lua_pushinteger(ev, va_arg(va, char)); break;
+                case 'B': lua_pushinteger(ev, va_arg(va, unsigned char)); break;
+                case 'h': lua_pushinteger(ev, va_arg(va, short)); break;
+                case 'H': lua_pushinteger(ev, va_arg(va, unsigned short)); break;
+                case 'i': lua_pushinteger(ev, va_arg(va, int)); break;
+                case 'I': lua_pushinteger(ev, va_arg(va, unsigned int)); break;
+                case 'l': lua_pushinteger(ev, va_arg(va, long)); break;
+                case 'L': lua_pushinteger(ev, va_arg(va, unsigned long)); break;
+                case 'j': lua_pushinteger(ev, va_arg(va, lua_Integer)); break;
+                case 'J': lua_pushinteger(ev, va_arg(va, lua_Unsigned)); break;
+                case 'T': lua_pushinteger(ev, va_arg(va, size_t)); break;
+                case 'f': lua_pushnumber(ev, va_arg(va, float)); break;
+                case 'd': lua_pushnumber(ev, va_arg(va, double)); break;
+                case 'n': lua_pushnumber(ev, va_arg(va, lua_Number)); break;
+                case 'c': c = va_arg(va, char); lua_pushlstring(ev, &c, 1); break;
+                case 'z': lua_pushstring(ev, va_arg(va, const char *)); break;
+                case 's': sz = va_arg(va, size_t); lua_pushlstring(ev, va_arg(va, const char *), sz); break;
+                case 'x': lua_pushnil(ev); break;
+                case 'q': lua_pushboolean(ev, va_arg(va, int)); break;
+                case 'F': lua_pushcfunction(ev, va_arg(va, lua_CFunction)); break;
+                case 'u': lua_pushlightuserdata(ev, va_arg(va, void*)); break;
+                case 'U': ptr = lua_newuserdata(ev, sizeof(void*)); *ptr = va_arg(va, void*); break;
+                case 'r': lua_newtable(ev); luaL_setfuncs(ev, va_arg(va, const luaL_Reg*), 0); break;
+                case 'R':
+                    lua_newtable(ev);
+                    lua_pushvalue(ev, -2);
+                    luaL_setfuncs(ev, va_arg(va, const luaL_Reg*), 1);
+                    lua_remove(ev, -2);
+                    break;
+            }
+        }
+    }
+    va_end(va);
+    return 0;
 }
 
 int craftos_machine_add_api(craftos_machine_t machine, const char * name, const struct luaL_Reg * funcs) {
@@ -278,11 +332,49 @@ int craftos_machine_add_api(craftos_machine_t machine, const char * name, const 
 }
 
 int craftos_machine_mount_real(craftos_machine_t machine, const char * src, const char * dest, int readOnly) {
-
+    struct string_list pathc = {NULL, NULL};
+    int n;
+    struct string_list_node * node;
+    struct craftos_mount_list ** mnt = &machine->mounts;
+    while (*mnt) mnt = &(*mnt)->next;
+    if (string_split_path(dest, &pathc, 1) != 0) return -1;
+    *mnt = F.malloc(sizeof(struct craftos_mount_list));
+    if (*mnt == NULL) {
+        string_list_clear(&pathc);
+        return -1;
+    }
+    for (node = pathc.head, n = 0; node; node = node->next, n++);
+    (*mnt)->next = NULL;
+    (*mnt)->flags = readOnly ? MOUNT_FLAG_RO : 0;
+    (*mnt)->filesystem_path = F.malloc(strlen(src) + 1);
+    strcpy((*mnt)->filesystem_path, src);
+    (*mnt)->mount_path = F.malloc(sizeof(char*) * (n + 1));
+    for (n = 0; pathc.head; n++) (*mnt)->mount_path[n] = string_list_shift_str(&pathc);
+    (*mnt)->mount_path[n] = NULL;
+    return 0;
 }
 
 int craftos_machine_mount_mmfs(craftos_machine_t machine, const void * src, const char * dest) {
-
+    struct string_list pathc = {NULL, NULL};
+    int n;
+    struct string_list_node * node;
+    struct craftos_mount_list ** mnt = &machine->mounts;
+    if (strncmp((const char*)src, "MMfs", 4) != 0) return -1;
+    while (*mnt) mnt = &(*mnt)->next;
+    if (string_split_path(dest, &pathc, 1) != 0) return -1;
+    *mnt = F.malloc(sizeof(struct craftos_mount_list));
+    if (*mnt == NULL) {
+        string_list_clear(&pathc);
+        return -1;
+    }
+    for (node = pathc.head, n = 0; node; node = node->next, n++);
+    (*mnt)->next = NULL;
+    (*mnt)->flags = MOUNT_FLAG_MMFS;
+    (*mnt)->root_dir = src;
+    (*mnt)->mount_path = F.malloc(sizeof(char*) * (n + 1));
+    for (n = 0; pathc.head; n++) (*mnt)->mount_path[n] = string_list_shift_str(&pathc);
+    (*mnt)->mount_path[n] = NULL;
+    return 0;
 }
 
 int craftos_machine_unmount(craftos_machine_t machine, const char * path) {

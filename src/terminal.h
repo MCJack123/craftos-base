@@ -2,6 +2,7 @@
 #define TERMINAL_H
 #include <craftos.h>
 
+extern unsigned int craftos_terminal_defaultPalette[16];
 extern craftos_terminal_t craftos_terminal_create(unsigned int width, unsigned int height);
 extern void craftos_terminal_destroy(craftos_terminal_t term);
 extern void craftos_terminal_clear(craftos_terminal_t term, int line, unsigned char colors);

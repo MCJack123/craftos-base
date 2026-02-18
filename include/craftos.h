@@ -101,6 +101,23 @@ struct craftos_stat {
     struct craftos_timespec st_mtim;
 };
 
+/** A structure containing filesystem info. */
+struct craftos_statvfs {
+    unsigned long  f_bsize;    /* Filesystem block size */
+    unsigned long  f_frsize;   /* Fragment size */
+    unsigned long  f_blocks;   /* Size of fs in f_frsize units */
+    unsigned long  f_bfree;    /* Number of free blocks */
+    unsigned long  f_bavail;   /* Number of free blocks for
+                                    unprivileged users */
+    unsigned long  f_files;    /* Number of inodes */
+    unsigned long  f_ffree;    /* Number of free inodes */
+    unsigned long  f_favail;   /* Number of free inodes for
+                                    unprivileged users */
+    unsigned long  f_fsid;     /* Filesystem ID */
+    unsigned long  f_flag;     /* Mount flags */
+    unsigned long  f_namemax;  /* Maximum filename length */
+};
+
 /** A structure representing a key-value pair for HTTP headers. */
 typedef struct craftos_http_header {
     const char * key;
@@ -122,6 +139,7 @@ typedef struct craftos_terminal {
     unsigned char canBlink : 1; /* Whether the cursor should blink */
     unsigned char paletteChanged : 1; /* Whether the palette needs updating */
     unsigned char cursorColor : 4; /* The color of the cursor */
+    unsigned char activeColors; /* The active colors for terminal writing */
 } * craftos_terminal_t;
 
 /** Holds information to be used when setting up a computer. */
@@ -442,6 +460,17 @@ typedef struct craftos_func {
     int (*mkdir)(const char * path, int mode, craftos_machine_t machine);
 
     /**
+     * An implementation of POSIX `access` for machine use. If set to NULL, and
+     * a compatible `access` is available, it will be used instead. Otherwise,
+     * `craftos_init` will fail.
+     * @param from The path to the directory to create
+     * @param mode The flags to use (usually W_OK = 2)
+     * @param machine The machine operating on the file
+     * @return 0 on success, non-0 on error
+     */
+    int (*access)(const char * path, int flags, craftos_machine_t machine);
+
+    /**
      * An implementation of POSIX `stat` for machine use. If set to NULL, and a
      * compatible `stat` is available, it will be used instead. Otherwise,
      * `craftos_init` will fail.
@@ -451,6 +480,17 @@ typedef struct craftos_func {
      * @return 0 on success, non-0 on error
      */
     int (*stat)(const char * path, struct craftos_stat * st, craftos_machine_t machine);
+
+    /**
+     * An implementation of POSIX `statvfs` for machine use. If set to NULL, and
+     * a compatible `statvfs` is available, it will be used instead. Otherwise,
+     * `craftos_init` will fail.
+     * @param path The path to a file on the filesystem to query
+     * @param st The structure to fill with info
+     * @param machine The machine operating on the file
+     * @return 0 on success, non-0 on error
+     */
+    int (*statvfs)(const char * path, struct craftos_statvfs * st, craftos_machine_t machine);
 
     /**
      * An implementation of dirent `opendir` for machine use. This may simply
@@ -695,9 +735,14 @@ extern craftos_status_t craftos_machine_run(craftos_machine_t machine);
  * the string from the next argument - arbitrary integer sizes are not supported.
  * Additionally, the following parameters are available:
  * - `x`: `nil`
- * - `q`: boolean
+ * - `q`: boolean (encoded as `int`)
+ * - `c`: single character string in `char`
  * - `F`: `lua_CFunction`
- * - `R`: `luaL_Reg` with functions to put in a table onto the queue
+ * - `u`: light userdata
+ * - `p`: full userdata pointer (takes `void*`, makes `void**` userdata)
+ * - `r`: `luaL_Reg*` with functions to put in a table onto the queue
+ * - `R`: `luaL_Reg*` with functions to put in a table onto the queue, consuming
+ *        an upvalue pushed before this
  * For pointer types (`zsFR`), `NULL` values will be converted to `nil`.
  * 
  * This function is not safe to call in interrupts, as it interacts with the Lua
@@ -725,6 +770,8 @@ extern int craftos_machine_add_api(craftos_machine_t machine, const char * name,
 
 /**
  * Mounts a filesystem directory inside the machine's filesystem.
+ * Up to 8 mounts may be made to the same path - the order of mounting
+ * determines search order for existing files/folders.
  * @param machine The machine to mount to
  * @param src The source filesystem path to mount (copied)
  * @param dest The destination path in the machine's filesystem (copied)
@@ -735,6 +782,8 @@ extern int craftos_machine_mount_real(craftos_machine_t machine, const char * sr
 
 /**
  * Mounts a read-only mmfs filesystem in memory inside the machine's filesystem.
+ * Up to 8 mounts may be made to the same path - the order of mounting
+ * determines search order for existing files/folders.
  * @param machine The machine to mount to
  * @param src The source filesystem to mount (not copied!)
  * @param dest The destination path in the machine's filesystem (copied)
@@ -743,9 +792,9 @@ extern int craftos_machine_mount_real(craftos_machine_t machine, const char * sr
 extern int craftos_machine_mount_mmfs(craftos_machine_t machine, const void * src, const char * dest);
 
 /**
- * Unmounts a previously mounted filesystem.
+ * Unmounts all previously mounted filesystems at a path.
  * @param machine The machine to unmount from
- * @param path The machine path to the filesystem to unmount
+ * @param path The machine path to the filesystem(s) to unmount
  * @return 0 on success, non-0 on error
  */
 extern int craftos_machine_unmount(craftos_machine_t machine, const char * path);

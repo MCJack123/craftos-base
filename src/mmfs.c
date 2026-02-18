@@ -14,7 +14,7 @@
 #define PATH_MAX 260
 
 const struct mmfs_dir_ent* mmfs_traverse(const struct mmfs_dir* root, const char* pat) {
-    // Directory entries are sorted, so we use a binary sort on each level
+    /* Directory entries are sorted, so we use a binary sort on each level */
     static char path[PATH_MAX];
     const struct mmfs_dir_ent* node = NULL;
     const struct mmfs_dir* dir = root;
