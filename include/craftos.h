@@ -740,7 +740,8 @@ extern craftos_status_t craftos_machine_run(craftos_machine_t machine);
  * - `c`: single character string in `char`
  * - `F`: `lua_CFunction`
  * - `u`: light userdata
- * - `p`: full userdata pointer (takes `void*`, makes `void**` userdata)
+ * - `P`: full userdata pointer (takes `void*`, makes `void**` userdata)
+ * - `G`: adds a `lua_CFunction` garbage collector to a preceding `p` userdata
  * - `r`: `luaL_Reg*` with functions to put in a table onto the queue
  * - `R`: `luaL_Reg*` with functions to put in a table onto the queue, consuming
  *        an upvalue pushed before this

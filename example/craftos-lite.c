@@ -212,7 +212,7 @@ int main() {
         } else if (status == CRAFTOS_MACHINE_STATUS_YIELD) {
             craftos_terminal_render(machine->term, surf->pixels + 4 * surf->pitch + 4 * pixelFormat->bytes_per_pixel, surf->pitch, pixelFormat->bits_per_pixel, 2, 2);
             SDL_UpdateWindowSurface(win);
-            if (SDL_WaitEvent(&ev)) {
+            if (SDL_WaitEventTimeout(&ev, 50)) {
                 switch (ev.type) {
                     case SDL_EVENT_QUIT:
                         goto exit;

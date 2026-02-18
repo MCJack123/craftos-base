@@ -310,7 +310,13 @@ int craftos_machine_queue_event(craftos_machine_t machine, const char * event, c
                 case 'q': lua_pushboolean(ev, va_arg(va, int)); break;
                 case 'F': lua_pushcfunction(ev, va_arg(va, lua_CFunction)); break;
                 case 'u': lua_pushlightuserdata(ev, va_arg(va, void*)); break;
-                case 'U': ptr = lua_newuserdata(ev, sizeof(void*)); *ptr = va_arg(va, void*); break;
+                case 'P': ptr = lua_newuserdata(ev, sizeof(void*)); *ptr = va_arg(va, void*); break;
+                case 'G':
+                    lua_createtable(ev, 0, 1);
+                    lua_pushcfunction(ev, va_arg(va, lua_CFunction));
+                    lua_setfield(ev, -2, "__gc");
+                    lua_setmetatable(ev, -2);
+                    break;
                 case 'r': lua_newtable(ev); luaL_setfuncs(ev, va_arg(va, const luaL_Reg*), 0); break;
                 case 'R':
                     lua_newtable(ev);
