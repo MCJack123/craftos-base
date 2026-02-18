@@ -38,13 +38,14 @@ int fs_handle_readLine(lua_State *L) {
     if (F.ferror(fp, machine)) return luaL_error(L, "Could not read file");
     char* retval = (char*)F.malloc(256);
     for (i = 0; 1; i += 256) {
-        for (j = 0; j < 256 && retval[i+j] != '\n' && !F.feof(fp, machine); j++) {
+        for (j = 0; j < 256 && !F.feof(fp, machine); j++) {
             int c = F.fgetc(fp, machine);
             if (c == EOF) c = 0;
             retval[i+j] = c;
+            if (c == '\n') break;
         }
         sz += j;
-        if (F.feof(fp, machine) || j < 256) break;
+        if (F.feof(fp, machine) || retval[i+j] == '\n' || j < 256) break;
         char * retvaln = (char*)F.realloc(retval, i + 512);
         if (retvaln == NULL) {
             F.free(retval);

@@ -99,6 +99,9 @@ static char* fixpath(craftos_machine_t comp, const char * path, int exists, int 
                     }
                     i = -1;
                     break;
+                } else if (strcmp(pathlist[i], pathc_iter->str) != 0) {
+                    i = -1;
+                    break;
                 }
             }
             if (i >= 0 && pathlist[i] == NULL) {
@@ -282,7 +285,7 @@ static int fixpath_multiple(craftos_machine_t comp, const char * path, struct fi
     memset(retval, 0, sizeof(struct fixpath_multiple));
     retval->mounts[0] = comp->mounts;
     retval->n = 1;
-    for (m = comp->mounts; m != NULL; m = m->next) {
+    for (m = comp->mounts->next; m != NULL; m = m->next) {
         char** pathlist = m->mount_path;
         int i;
         struct string_list_node * pathc_iter;
@@ -296,6 +299,9 @@ static int fixpath_multiple(craftos_machine_t comp, const char * path, struct fi
                 } else if (i == max_path_n && retval->n < 8) {
                     retval->mounts[retval->n++] = m;
                 }
+                i = -1;
+                break;
+            } else if (strcmp(pathlist[i], pathc_iter->str) != 0) {
                 i = -1;
                 break;
             }

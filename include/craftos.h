@@ -892,6 +892,13 @@ extern void craftos_event_key(craftos_machine_t machine, unsigned char keycode, 
  */
 extern void craftos_event_key_up(craftos_machine_t machine, unsigned char keycode);
 
+/**
+ * Triggers a character typed.
+ * @param machine The machine to trigger on
+ * @param ch The character typed
+ */
+#define craftos_event_char(machine, ch) craftos_machine_queue_event(machine, "char", "c", ch)
+
 /* Note: Mouse coordinates are given in character coordinates (1-based) if the
    pixel scale passed in the machine config is 0; otherwise, the coordinates
    should be in screen space (0-based), and the coordinates will be converted to

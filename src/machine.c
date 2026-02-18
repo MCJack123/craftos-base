@@ -237,7 +237,7 @@ craftos_status_t craftos_machine_run(craftos_machine_t machine) {
         if (narg < 0) return CRAFTOS_MACHINE_STATUS_YIELD;
         status = lua_resume(coro, NULL, narg);
     }
-    if (status == LUA_YIELD) {
+    while (status == LUA_YIELD) {
         if (machine->running == CRAFTOS_MACHINE_STATUS_SHUTDOWN || machine->running == CRAFTOS_MACHINE_STATUS_RESTART) {
             lua_close(machine->L);
             machine->L = machine->coro = machine->eventQueue = NULL;
@@ -247,9 +247,13 @@ craftos_status_t craftos_machine_run(craftos_machine_t machine) {
             }
             return machine->running;
         }
-        return CRAFTOS_MACHINE_STATUS_YIELD;
+        if (lua_isstring(coro, -1)) narg = getNextEvent(machine, coro, lua_tostring(coro, -1));
+        else narg = getNextEvent(machine, coro, NULL);
+        if (narg < 0) return CRAFTOS_MACHINE_STATUS_YIELD;
+        status = lua_resume(coro, NULL, narg);
         /*printf("Yield\n");*/
-    } else if (status != 0) {
+    }
+    if (status != 0) {
         const char * fullstr = lua_tostring(coro, -1);
         printf("Errored: %s\n", fullstr);
         craftos_terminal_clear(machine->term, -1, 0xFE);
@@ -285,10 +289,10 @@ int craftos_machine_queue_event(craftos_machine_t machine, const char * event, c
         va_start(va, fmt);
         while (*fmt) {
             switch (*fmt++) {
-                case 'b': lua_pushinteger(ev, va_arg(va, char)); break;
-                case 'B': lua_pushinteger(ev, va_arg(va, unsigned char)); break;
-                case 'h': lua_pushinteger(ev, va_arg(va, short)); break;
-                case 'H': lua_pushinteger(ev, va_arg(va, unsigned short)); break;
+                case 'b': lua_pushinteger(ev, va_arg(va, int)); break;
+                case 'B': lua_pushinteger(ev, va_arg(va, unsigned int)); break;
+                case 'h': lua_pushinteger(ev, va_arg(va, int)); break;
+                case 'H': lua_pushinteger(ev, va_arg(va, unsigned int)); break;
                 case 'i': lua_pushinteger(ev, va_arg(va, int)); break;
                 case 'I': lua_pushinteger(ev, va_arg(va, unsigned int)); break;
                 case 'l': lua_pushinteger(ev, va_arg(va, long)); break;
@@ -296,10 +300,10 @@ int craftos_machine_queue_event(craftos_machine_t machine, const char * event, c
                 case 'j': lua_pushinteger(ev, va_arg(va, lua_Integer)); break;
                 case 'J': lua_pushinteger(ev, va_arg(va, lua_Unsigned)); break;
                 case 'T': lua_pushinteger(ev, va_arg(va, size_t)); break;
-                case 'f': lua_pushnumber(ev, va_arg(va, float)); break;
+                case 'f': lua_pushnumber(ev, va_arg(va, double)); break;
                 case 'd': lua_pushnumber(ev, va_arg(va, double)); break;
                 case 'n': lua_pushnumber(ev, va_arg(va, lua_Number)); break;
-                case 'c': c = va_arg(va, char); lua_pushlstring(ev, &c, 1); break;
+                case 'c': c = va_arg(va, int); lua_pushlstring(ev, &c, 1); break;
                 case 'z': lua_pushstring(ev, va_arg(va, const char *)); break;
                 case 's': sz = va_arg(va, size_t); lua_pushlstring(ev, va_arg(va, const char *), sz); break;
                 case 'x': lua_pushnil(ev); break;
