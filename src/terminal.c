@@ -167,7 +167,7 @@ void craftos_terminal_render(craftos_terminal_t term, void * framebuffer, size_t
             for (x = 0; x < term->width * 6 * scaleX; x++) {
                 cp = (y / 9 / scaleY) * term->width + (x / 6 / scaleX);
                 c = term->screen[cp];
-                v = font_data[((c >> 4) * 9 + ((y % (9 * scaleY)) / scaleY)) * 96 + ((c & 0xF) * 6 + ((x % (6 * scaleX)) / scaleX))] ? term->palette[term->colors[cp] & 0x0F] : term->palette[term->colors[cp] >> 4];
+                v = font_data[((c >> 4) * 9 + ((y % (9 * scaleY)) / scaleY)) * 96 + ((c & 0xF) * 6 + ((x % (6 * scaleX)) / scaleX))] ? term->pixelPalette[term->colors[cp] & 0x0F] : term->pixelPalette[term->colors[cp] >> 4];
                 switch (depth) {
                     case 4:
                         if (x % 2) ((unsigned char *)line)[x / 2] |= (v & 0xF);
@@ -184,7 +184,7 @@ void craftos_terminal_render(craftos_terminal_t term, void * framebuffer, size_t
                 }
             }
             if (term->blink && y / scaleY == term->cursorY * 9 + 7 && cx >= 0 && cx < term->width * 6 * scaleX) {
-                v = term->palette[term->cursorColor];
+                v = term->pixelPalette[term->cursorColor];
                 for (x = cx * 6 * scaleX; x < (cx + 1) * 6 * scaleX - scaleX; x++) {
                     switch (depth) {
                         case 4:

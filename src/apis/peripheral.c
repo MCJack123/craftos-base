@@ -38,8 +38,12 @@ static int peripheral_getMethods(lua_State *L) {
     for (p = computer->peripherals; p; p = p->next) {
         if (strcmp(p->side, side) == 0) {
             int i;
-            for (i = 0; p->funcs[i].name; i++) lua_pushstring(L, p->funcs[i].name);
-            return i;
+            lua_newtable(L);
+            for (i = 0; p->funcs[i].name; i++) {
+                lua_pushstring(L, p->funcs[i].name);
+                lua_rawseti(L, -2, i + 1);
+            }
+            return 1;
         }
     }
     return luaL_error(L, "No such peripheral");
@@ -85,7 +89,7 @@ static int peripheral_hasType(lua_State *L) {
             return 1;
         }
     }
-    return luaL_error(L, "No such peripheral");
+    return 0;
 }
 
 const luaL_Reg peripheral_lib[] = {

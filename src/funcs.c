@@ -193,18 +193,29 @@ int craftos_init(const craftos_func_t * functions) {
     WRAP_CHECK(rename);
 #if HAVE_SYS_STAT_H
     WRAP_CHECK(stat);
+#else
+    F.stat = functions->stat;
 #endif
 #if HAVE_SYS_STATVFS_H
     WRAP_CHECK(statvfs);
+#else
+    F.statvfs = functions->statvfs;
 #endif
 #if HAVE_UNISTD_H
     WRAP_CHECK(mkdir);
     WRAP_CHECK(access);
+#else
+    F.mkdir = functions->mkdir;
+    F.access = functions->access;
 #endif
 #if HAVE_DIRENT_H
     WRAP_CHECK(opendir);
     WRAP_CHECK(closedir);
     WRAP_CHECK(readdir);
+#else
+    F.opendir = functions->opendir;
+    F.closedir = functions->closedir;
+    F.readdir = functions->readdir;
 #endif
     if (
         functions->http_request != NULL &&

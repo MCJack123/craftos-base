@@ -228,7 +228,7 @@ static int craftos_fatfs_closedir(craftos_DIR * dir, craftos_machine_t machine) 
 static struct craftos_dirent * craftos_fatfs_readdir(craftos_DIR * dir, craftos_machine_t machine) {
     static struct craftos_dirent d; /* not threadsafe! */
     FILINFO info;
-    if (f_readdir((DIR*)dir, &info) != FR_OK) return NULL;
+    if (f_readdir((DIR*)dir, &info) != FR_OK || info.fname[0] == 0) return NULL;
     d.d_ino = 0;
     d.d_reclen = sizeof(craftos_dirent);
     d.d_type = info.fattrib;
