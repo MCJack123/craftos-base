@@ -2,6 +2,7 @@
 #include "../types.h"
 #include <lua.h>
 #include <lauxlib.h>
+#include <string.h>
 
 static const char* side_names[] = {"left", "right", "top", "bottom", "front", "back"};
 

@@ -40,11 +40,12 @@ void string_list_pop(struct string_list * list) {
 char* string_list_pop_str(struct string_list * list) {
     struct string_list_node * next;
     char* retval;
-    if (!list->head) return;
+    if (!list->head) return NULL;
     next = list->tail->prev;
     retval = list->tail->str;
     F.free(list->tail);
     if ((list->tail = next) == NULL) list->head = NULL;
+    return retval;
 }
 
 void string_list_push_pop(struct string_list * to, struct string_list * from) {

@@ -60,49 +60,49 @@
     .readdir = craftos_fatfs_readdir
 
 static FILE * craftos_fatfs_fopen(const char * file, const char * mode, craftos_machine_t machine) {
-    FIL* ptr = malloc(sizeof(FIL));
+    FIL* ptr = (FIL*)malloc(sizeof(FIL));
     FRESULT res = f_open(ptr, file, (mode[0] == 'r' ? FA_READ : FA_WRITE) | (mode[0] == 'w' ? FA_CREATE_ALWAYS : (mode[0] == 'a' ? FA_OPEN_APPEND : 0)) | (strchr(mode, '+') ? FA_READ | FA_WRITE : 0));
     if (res != FR_OK) {
         free(ptr);
         return NULL;
     }
-    return ptr;
+    return (FILE*)ptr;
 }
 
 static int craftos_fatfs_fclose(FILE *fp, craftos_machine_t machine) {
-    FRESULT res = f_close(fp);
+    FRESULT res = f_close((FIL*)fp);
     free(fp);
     return res;
 }
 
 static size_t craftos_fatfs_fread(void * buf, size_t size, size_t count, FILE * fp, craftos_machine_t machine) {
     UINT retval;
-    FRESULT res = f_read(fp, buf, size * count, &retval);
+    FRESULT res = f_read((FIL*)fp, buf, size * count, &retval);
     if (res != FR_OK) return -1;
     return retval;
 }
 
 static size_t craftos_fatfs_fwrite(const void * buf, size_t size, size_t count, FILE * fp, craftos_machine_t machine) {
     UINT retval;
-    FRESULT res = f_write(fp, buf, size * count, &retval);
+    FRESULT res = f_write((FIL*)fp, buf, size * count, &retval);
     if (res != FR_OK) return -1;
     return retval;
 }
 
 static int craftos_fatfs_fflush(FILE * fp, craftos_machine_t machine) {
-    return f_sync(fp);
+    return f_sync((FIL*)fp);
 }
 
 static int craftos_fatfs_fgetc(FILE * fp, craftos_machine_t machine) {
     char c;
     UINT read;
-    if (f_read(fp, &c, 1, &read) != FR_OK) return -1;
+    if (f_read((FIL*)fp, &c, 1, &read) != FR_OK) return -1;
     if (read == 0) return EOF;
     return c;
 }
 
 static int craftos_fatfs_fputc(int ch, FILE * fp, craftos_machine_t machine) {
-    return f_putc(ch, fp);
+    return f_putc(ch, (FIL*)fp);
 }
 
 static long craftos_fatfs_ftell(FILE * fp, craftos_machine_t machine) {
@@ -111,9 +111,9 @@ static long craftos_fatfs_ftell(FILE * fp, craftos_machine_t machine) {
 
 static int craftos_fatfs_fseek(FILE * fp, long offset, int origin, craftos_machine_t machine) {
     switch (origin) {
-        case SEEK_SET: return f_lseek(fp, offset);
-        case SEEK_CUR: return f_lseek(fp, f_tell((FIL*)fp) + offset);
-        case SEEK_END: return f_lseek(fp, f_size((FIL*)fp) - offset);
+        case SEEK_SET: return f_lseek((FIL*)fp, offset);
+        case SEEK_CUR: return f_lseek((FIL*)fp, f_tell((FIL*)fp) + offset);
+        case SEEK_END: return f_lseek((FIL*)fp, f_size((FIL*)fp) - offset);
         default: return -1;
     }
 }
@@ -210,17 +210,17 @@ static int craftos_fatfs_statvfs(const char * path, struct craftos_statvfs * st,
 }
 
 static craftos_DIR * craftos_fatfs_opendir(const char * path, craftos_machine_t machine) {
-    DIR* d = malloc(sizeof(DIR));
+    DIR* d = (DIR*)malloc(sizeof(DIR));
     FRESULT res = f_opendir(d, path);
     if (res != FR_OK) {
         free(d);
         return NULL;
     }
-    return d;
+    return (craftos_DIR*)d;
 }
 
 static int craftos_fatfs_closedir(craftos_DIR * dir, craftos_machine_t machine) {
-    FRESULT res = f_closedir(dir);
+    FRESULT res = f_closedir((DIR*)dir);
     free(dir);
     return res;
 }
@@ -228,7 +228,7 @@ static int craftos_fatfs_closedir(craftos_DIR * dir, craftos_machine_t machine) 
 static struct craftos_dirent * craftos_fatfs_readdir(craftos_DIR * dir, craftos_machine_t machine) {
     static struct craftos_dirent d; /* not threadsafe! */
     FILINFO info;
-    if (f_readdir(dir, &info) != FR_OK) return NULL;
+    if (f_readdir((DIR*)dir, &info) != FR_OK) return NULL;
     d.d_ino = 0;
     d.d_reclen = sizeof(craftos_dirent);
     d.d_type = info.fattrib;
