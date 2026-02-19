@@ -21,6 +21,7 @@ The emulator supports a few extension abilities to provide extra functionality:
 - Use `craftos_machine_mount_{real|mmfs}` to mount extra directories into the CC filesystem. This can either reference a filesystem path (which uses the filesystem routines in the function table) or a read-only [mmfs](https://gist.github.com/MCJack123/a89ce2f9847989940667620257b597a6)-formatted memory block, the latter of which is useful in embedded systems with a lack of a real filesystem.
 - Use `craftos_machine_peripheral_attach` to attach a peripheral to a side. This can be used to emulate special peripheral types. See the function's docs for more information on how this works.
 - The `craftos_tmpfs.h` header provides a custom in-memory filesystem routine set which can be used on systems which lack working `stdio.h` functionality.
+- The `craftos_fatfs.h` header provides implementations for filesystem functions based on [FatFs](https://elm-chan.org/fsw/ff/), for use with platforms that lack `stdio.h` file access but have FatFs. The functions are implemented in the header, so only include it in your function definition file.
 
 See `include/craftos.h` for a full list of all OS functions that can be implemented. See `example/craftos-lite.c` for a working example using SDL3, libcurl and POSIX as a backend.
 

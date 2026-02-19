@@ -13,7 +13,7 @@ FILE * craftos_tmpfs_fopen(const char * file, const char * mode, craftos_machine
 }
 
 int craftos_tmpfs_fclose(FILE *fp, craftos_machine_t machine) {
-
+    
 }
 
 size_t craftos_tmpfs_fread(void * buf, size_t size, size_t count, FILE * fp, craftos_machine_t machine) {
