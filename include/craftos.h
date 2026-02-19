@@ -17,6 +17,10 @@
 #define CRAFTOS_CC_VERSION "1.117.0"
 #define CRAFTOS_BASE_VERSION "1.0"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef lauxlib_h
 struct luaL_Reg; /* silences warning */
 #endif
@@ -1013,5 +1017,9 @@ extern void craftos_event_websocket_success(craftos_machine_t machine, const cha
  * @param code The code for the closing, or -1 for abnormal close
  */
 #define craftos_event_websocket_closed(machine, url, message, code) craftos_machine_queue_event(machine, "websocket_closed", (code) != -1 ? "zzi" : "zzx", url, message, (int)(code))
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

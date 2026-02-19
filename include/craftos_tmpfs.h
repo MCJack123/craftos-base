@@ -60,6 +60,10 @@
     .closedir = craftos_tmpfs_closedir,\
     .readdir = craftos_tmpfs_readdir
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Initializes the tmpfs system, optionally filling from an existing mmfs.
  * @param init_mmfs A mmfs block to load files from, or NULL to create it empty
@@ -87,5 +91,9 @@ extern int craftos_tmpfs_statvfs(const char * path, struct craftos_statvfs * st,
 extern craftos_DIR * craftos_tmpfs_opendir(const char * path, craftos_machine_t machine);
 extern int craftos_tmpfs_closedir(craftos_DIR * dir, craftos_machine_t machine);
 extern struct craftos_dirent * craftos_tmpfs_readdir(craftos_DIR * dir, craftos_machine_t machine);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
