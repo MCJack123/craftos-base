@@ -172,15 +172,15 @@ static int os_setAlarm(lua_State *L) {
     else delta_time = (time + 24.0) - current_time;
     double real_time = (double)(delta_time * 50000.0);
     int id;
-    if (F.startTimer != NULL)
+    if (F.startTimer != NULL) {
         id = F.startTimer(real_time * 1000, computer);
-    else {
+        struct craftos_alarm_list * alarm = F.malloc(sizeof(struct craftos_alarm_list));
+        alarm->next = computer->alarms;
+        alarm->id = id;
+        computer->alarms = alarm;
+    } else {
         /* TODO: implement software timers */
     }
-    struct craftos_alarm_list * alarm = F.malloc(sizeof(struct craftos_alarm_list));
-    alarm->next = computer->alarms;
-    alarm->id = id;
-    computer->alarms = alarm;
     return 1;
 }
 

@@ -74,27 +74,40 @@ static int rs_setAnalogOutput(lua_State *L) {
     return 0;
 }
 
-static int rs_0(lua_State *L) {
+static int rs_getBundledInput(lua_State *L) {
     craftos_machine_t machine = get_comp(L);
     craftos_redstone_side_t channel = get_channel(luaL_checkstring(L, 1));
     if (channel == CRAFTOS_REDSTONE_SIDE_INVALID) luaL_error(L, "Invalid side");
-    lua_pushnumber(L, 0);
+    if (F.redstone_getInput) lua_pushinteger(L, F.redstone_getInput(channel + 6, machine));
+    else lua_pushnumber(L, 0);
     return 1;
 }
 
-static int rs_false(lua_State *L) {
+static int rs_getBundledOutput(lua_State *L) {
     craftos_machine_t machine = get_comp(L);
     craftos_redstone_side_t channel = get_channel(luaL_checkstring(L, 1));
     if (channel == CRAFTOS_REDSTONE_SIDE_INVALID) luaL_error(L, "Invalid side");
-    lua_pushboolean(L, 0);
+    lua_pushinteger(L, machine->rs_output[channel + 6]);
     return 1;
 }
 
-static int rs_none(lua_State *L) {
+static int rs_setBundledOutput(lua_State *L) {
     craftos_machine_t machine = get_comp(L);
     craftos_redstone_side_t channel = get_channel(luaL_checkstring(L, 1));
     if (channel == CRAFTOS_REDSTONE_SIDE_INVALID) luaL_error(L, "Invalid side");
+    machine->rs_output[channel + 6] = luaL_checkinteger(L, 2);
+    if (F.redstone_setOutput) F.redstone_setOutput(channel + 6, machine->rs_output[channel + 6], machine);
     return 0;
+}
+
+static int rs_testBundledInput(lua_State *L) {
+    craftos_machine_t machine = get_comp(L);
+    craftos_redstone_side_t channel = get_channel(luaL_checkstring(L, 1));
+    if (channel == CRAFTOS_REDSTONE_SIDE_INVALID) luaL_error(L, "Invalid side");
+    unsigned short mask = luaL_checkinteger(L, 2);
+    if (F.redstone_getInput) lua_pushboolean(L, (F.redstone_getInput(channel + 6, machine) & mask) == mask);
+    else lua_pushboolean(L, mask == 0);
+    return 1;
 }
 
 const luaL_Reg rs_lib[] = {
@@ -108,9 +121,9 @@ const luaL_Reg rs_lib[] = {
     {"getAnalogueInput", rs_getAnalogInput},
     {"setAnalogueOutput", rs_setAnalogOutput},
     {"getAnalogueOutput", rs_getAnalogOutput},
-    {"getBundledInput", rs_0},
-    {"getBundledOutput", rs_0},
-    {"setBundledOutput", rs_none},
-    {"testBundledInput", rs_false},
+    {"getBundledInput", rs_getBundledInput},
+    {"getBundledOutput", rs_getBundledOutput},
+    {"setBundledOutput", rs_setBundledOutput},
+    {"testBundledInput", rs_testBundledInput},
     {NULL, NULL}
 };

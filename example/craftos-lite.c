@@ -1,11 +1,15 @@
 #include <craftos.h>
 #include <SDL3/SDL.h>
+#include <curl/curl.h>
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 static time_t start;
 static const SDL_PixelFormatDetails * pixelFormat;
+static craftos_machine_t machine;
+static SDL_Window * win;
+static SDL_Surface * surf;
 
 static const struct {SDL_Keycode key; unsigned char k;} keymap[] = {
     {0, 1},
@@ -146,25 +150,177 @@ static void cancelTimer(int id, craftos_machine_t machine) {
     SDL_RemoveTimer(id);
 }
 
-static const struct craftos_func funcs = {
+typedef struct {
+    char *data;
+    char *ptr;
+    size_t size;
+    CURL *curl;
+} http_response_t;
+
+static size_t http_write_callback(void *contents, size_t size, size_t nmemb, void *userp) {
+    http_response_t * handle = (http_response_t*)userp;
+    size_t realsize = size * nmemb;
+    handle->data = realloc(handle->data, handle->size + realsize);
+    if (!handle->data) return 0;
+    memcpy(handle->data + handle->size, contents, realsize);
+    handle->size += realsize;
+    return realsize;
+}
+
+static int http_request(const char * url, const char * method, const unsigned char * body, size_t body_size, craftos_http_header_t * headers, int redirect, craftos_machine_t machine) {
+    CURL *curl = curl_easy_init();
+    if (!curl) return 1;
+    
+    struct curl_slist *header_list = NULL;
+    int i;
+    
+    http_response_t *handle_data = malloc(sizeof(http_response_t));
+    handle_data->data = NULL;
+    handle_data->size = 0;
+    handle_data->curl = curl;
+    for (i = 0; headers[i].key != NULL; i++) {
+        char header_str[1024];
+        snprintf(header_str, sizeof(header_str), "%s: %s", headers[i].key, headers[i].value);
+        header_list = curl_slist_append(header_list, header_str);
+    }
+    
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, method);
+    if (header_list) curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
+    if (body && body_size > 0) {
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body);
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)body_size);
+    }
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, redirect ? 1L : 0L);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, http_write_callback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, handle_data);
+    
+    CURLcode res = curl_easy_perform(curl);
+    
+    if (header_list) curl_slist_free_all(header_list);
+    
+    if (res != CURLE_OK) {
+        free(handle_data->data);
+        free(handle_data);
+        curl_easy_cleanup(curl);
+        return 1;
+    }
+    
+    handle_data->ptr = handle_data->data;
+    craftos_event_http_success(machine, url, (craftos_http_handle_t)handle_data);
+    
+    return 0;
+}
+
+static int http_handle_close(craftos_http_handle_t _handle, craftos_machine_t machine) {
+    http_response_t * handle = (http_response_t*)_handle;
+    curl_easy_cleanup(handle->curl);
+    free(handle->data);
+    free(handle);
+    return 0;
+}
+
+static size_t http_handle_read(void * buf, size_t size, size_t count, craftos_http_handle_t _handle, craftos_machine_t machine) {
+    http_response_t * handle = (http_response_t*)_handle;
+    size_t realsize = size * count;
+    if (handle->ptr + realsize > handle->data + handle->size)
+        realsize = (handle->data + handle->size) - handle->ptr;
+    if (realsize == 0) return 0;
+    memcpy(buf, handle->ptr, realsize);
+    handle->ptr += realsize;
+    return realsize / size;
+}
+
+static int http_handle_getc(craftos_http_handle_t _handle, craftos_machine_t machine) {
+    http_response_t * handle = (http_response_t*)_handle;
+    if (handle->ptr >= handle->data + handle->size) return EOF;
+    return *handle->ptr++;
+}
+
+static long http_handle_tell(craftos_http_handle_t _handle, craftos_machine_t machine) {
+    http_response_t * handle = (http_response_t*)_handle;
+    return handle->ptr - handle->data;
+}
+
+static int http_handle_seek(craftos_http_handle_t _handle, long offset, int origin, craftos_machine_t machine) {
+    http_response_t * handle = (http_response_t*)_handle;
+    switch (origin) {
+        case SEEK_SET:
+            if (offset < 0 || offset >= handle->size) return -1;
+            handle->ptr = handle->data + offset;
+            break;
+        case SEEK_CUR:
+            if (offset < handle->data - handle->ptr || offset >= handle->size - (handle->ptr - handle->data)) return -1;
+            handle->ptr += offset;
+            break;
+        case SEEK_END:
+            if (offset > 0 || -offset >= handle->size) return -1;
+            handle->ptr = handle->data + handle->size - offset;
+            break;
+    }
+    return 0;
+}
+
+static int http_handle_eof(craftos_http_handle_t _handle, craftos_machine_t machine) {
+    http_response_t * handle = (http_response_t*)_handle;
+    return handle->ptr >= handle->data + handle->size;
+}
+
+static int http_handle_getResponseCode(craftos_http_handle_t _handle, craftos_machine_t machine) {
+    http_response_t * handle = (http_response_t*)_handle;
+    long code = 0;
+    curl_easy_getinfo(handle->curl, CURLINFO_RESPONSE_CODE, &code);
+    return code;
+}
+
+static void http_handle_getResponseHeader(craftos_http_handle_t _handle, craftos_http_header_t ** header, craftos_machine_t machine) {
+    http_response_t * handle = (http_response_t*)_handle;
+    *header = curl_easy_nextheader(handle->curl, CURLH_HEADER, -1, (struct curl_header*)*header);
+}
+
+static const craftos_func_t funcs = {
     timestamp,
     convertPixelValue,
     startTimer,
     cancelTimer,
-    NULL
+    NULL,
+    NULL, NULL, 
+    NULL, NULL, NULL, 
+    NULL, NULL, NULL, NULL, 
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 
+    NULL, NULL, 
+    NULL, 
+    NULL, 
+    NULL, NULL, NULL, 
+    http_request,
+    http_handle_close,
+    http_handle_read,
+    http_handle_getc,
+    http_handle_tell,
+    http_handle_seek,
+    http_handle_eof,
+    http_handle_getResponseCode,
+    http_handle_getResponseHeader,
+    NULL, NULL, NULL
 };
+
+static Uint32 render_cb(void *userdata, SDL_TimerID timerID, Uint32 interval) {
+    craftos_terminal_render(machine->term, surf->pixels + 4 * surf->pitch + 4 * pixelFormat->bytes_per_pixel, surf->pitch, pixelFormat->bits_per_pixel, 2, 2);
+    return interval;
+}
 
 int main() {
     start = time(NULL);
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
     if (craftos_init(&funcs) != 0) return 1;
-    SDL_Window * win = SDL_CreateWindow("CraftOS Terminal", 620, 350, SDL_WINDOW_INPUT_FOCUS);
+    win = SDL_CreateWindow("CraftOS Terminal", 620, 350, SDL_WINDOW_INPUT_FOCUS);
     if (win == NULL) {
         SDL_Quit();
         return 2;
     }
-    SDL_Surface * surf = SDL_GetWindowSurface(win);
+    surf = SDL_GetWindowSurface(win);
     pixelFormat = SDL_GetPixelFormatDetails(surf->format);
+    SDL_ClearSurface(surf, 17.0 / 255.0, 17.0 / 255.0, 17.0 / 255.0, 1.0);
     FILE* fp = fopen("/usr/share/craftos/bios.lua", "r");
     if (fp == NULL) {
         SDL_DestroyWindow(win);
@@ -190,7 +346,7 @@ int main() {
         0,
         "."
     };
-    craftos_machine_t machine = craftos_machine_create(&config);
+    machine = craftos_machine_create(&config);
     if (machine == NULL) {
         free(bios);
         SDL_DestroyWindow(win);
@@ -199,19 +355,17 @@ int main() {
     }
     craftos_machine_mount_real(machine, "/usr/share/craftos/rom", "rom", 1);
     SDL_StartTextInput(win);
+    SDL_AddTimer(50, render_cb, NULL);
     for (;;) {
         SDL_Event ev;
         unsigned char k;
         craftos_status_t status = craftos_machine_run(machine);
+        SDL_UpdateWindowSurface(win);
         if (status == CRAFTOS_MACHINE_STATUS_SHUTDOWN) break;
         else if (status == CRAFTOS_MACHINE_STATUS_ERROR) {
-            craftos_terminal_render(machine->term, surf->pixels + 4 * surf->pitch + 4 * pixelFormat->bytes_per_pixel, surf->pitch, pixelFormat->bits_per_pixel, 2, 2);
-            SDL_UpdateWindowSurface(win);
             for (;;) if (SDL_WaitEvent(&ev) && ev.type == SDL_EVENT_QUIT) break;
             break;
         } else if (status == CRAFTOS_MACHINE_STATUS_YIELD) {
-            craftos_terminal_render(machine->term, surf->pixels + 4 * surf->pitch + 4 * pixelFormat->bytes_per_pixel, surf->pitch, pixelFormat->bits_per_pixel, 2, 2);
-            SDL_UpdateWindowSurface(win);
             if (SDL_WaitEventTimeout(&ev, 50)) {
                 switch (ev.type) {
                     case SDL_EVENT_QUIT:

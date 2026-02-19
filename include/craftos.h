@@ -14,6 +14,9 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#define CRAFTOS_CC_VERSION "1.117.0"
+#define CRAFTOS_BASE_VERSION "1.0"
+
 #ifndef lauxlib_h
 struct luaL_Reg; /* silences warning */
 #endif
@@ -538,6 +541,9 @@ typedef struct craftos_func {
      * If this function is not implemented, HTTP will not be available in the
      * machines.
      * 
+     * Note: All strings and the header table will be invalidated after this
+     * returns. Copy any values you will need later, especially the URL.
+     * 
      * @param url The URL to request
      * @param method The method for the request
      * @param body The body to send, or NULL for no body
@@ -606,6 +612,15 @@ typedef struct craftos_func {
      * @return 0 on success, non-0 on error
      */
     int (*http_handle_seek)(craftos_http_handle_t handle, long offset, int origin, craftos_machine_t machine);
+
+    /**
+     * An implementation of `feof` for HTTP handles. If this function is not
+     * implemented, HTTP will not be available in the machines.
+     * @param handle The handle to seek in
+     * @param machine The machine operating on the file
+     * @return The position in the file, or -1 on error
+     */
+    int (*http_handle_eof)(craftos_http_handle_t handle, craftos_machine_t machine);
 
     /**
      * Returns the response code for an HTTP handle. If this function is not
@@ -678,7 +693,7 @@ typedef struct craftos_func {
      * @param machine The machine operating on the handle
      */
     void (*http_websocket_close)(craftos_http_websocket_t handle, craftos_machine_t machine);
-} * craftos_func_t;
+} craftos_func_t;
 
 /**
  * Initializes the emulator with platform-dependent functions. This must be
@@ -686,7 +701,7 @@ typedef struct craftos_func {
  * @param functions A table of functions filled in by the application
  * @return 0 on success, non-0 on error
  */
-extern int craftos_init(const craftos_func_t functions);
+extern int craftos_init(const craftos_func_t * functions);
 
 /**
  * Creates a new machine using the specified configuration.

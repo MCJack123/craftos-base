@@ -28,7 +28,7 @@ static int peripheral_getType(lua_State *L) {
             return i;
         }
     }
-    return luaL_error(L, "No such peripheral");
+    return 0;
 }
 
 static int peripheral_getMethods(lua_State *L) {

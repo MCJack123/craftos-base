@@ -120,7 +120,7 @@ static struct craftos_dirent * wrap_readdir(craftos_DIR * dir, craftos_machine_t
 
 
 
-int craftos_init(const craftos_func_t functions) {
+int craftos_init(const craftos_func_t * functions) {
     if (
         functions->timestamp == NULL
         || functions->convertPixelValue == NULL
@@ -213,6 +213,7 @@ int craftos_init(const craftos_func_t functions) {
         functions->http_handle_getc != NULL &&
         functions->http_handle_tell != NULL &&
         functions->http_handle_seek != NULL &&
+        functions->http_handle_eof != NULL &&
         functions->http_handle_getResponseCode != NULL &&
         functions->http_handle_getResponseHeader != NULL
     ) {
@@ -222,6 +223,7 @@ int craftos_init(const craftos_func_t functions) {
         F.http_handle_getc = functions->http_handle_getc;
         F.http_handle_tell = functions->http_handle_tell;
         F.http_handle_seek = functions->http_handle_seek;
+        F.http_handle_eof = functions->http_handle_eof;
         F.http_handle_getResponseCode = functions->http_handle_getResponseCode;
         F.http_handle_getResponseHeader = functions->http_handle_getResponseHeader;
         if (
@@ -244,6 +246,7 @@ int craftos_init(const craftos_func_t functions) {
         F.http_handle_getc = NULL;
         F.http_handle_tell = NULL;
         F.http_handle_seek = NULL;
+        F.http_handle_eof = NULL;
         F.http_handle_getResponseCode = NULL;
         F.http_handle_getResponseHeader = NULL;
         F.http_websocket = NULL;

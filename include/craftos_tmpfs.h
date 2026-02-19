@@ -30,6 +30,7 @@
     craftos_tmpfs_remove,\
     craftos_tmpfs_rename,\
     craftos_tmpfs_mkdir,\
+    craftos_tmpfs_access,\
     craftos_tmpfs_stat,\
     craftos_tmpfs_statvfs,\
     craftos_tmpfs_opendir,\
@@ -52,11 +53,19 @@
     .remove = craftos_tmpfs_remove,\
     .rename = craftos_tmpfs_rename,\
     .mkdir = craftos_tmpfs_mkdir,\
+    .access = craftos_tmpfs_access,\
     .stat = craftos_tmpfs_stat,\
     .statvfs = craftos_tmpfs_statvfs,\
     .opendir = craftos_tmpfs_opendir,\
     .closedir = craftos_tmpfs_closedir,\
     .readdir = craftos_tmpfs_readdir
+
+/**
+ * Initializes the tmpfs system, optionally filling from an existing mmfs.
+ * @param init_mmfs A mmfs block to load files from, or NULL to create it empty
+ * @return 0 on success, non-0 on error
+ */
+extern int craftos_tmpfs_init(const void * init_mmfs);
 
 extern FILE * craftos_tmpfs_fopen(const char * file, const char * mode, craftos_machine_t machine);
 extern int craftos_tmpfs_fclose(FILE *fp, craftos_machine_t machine);
@@ -72,6 +81,7 @@ extern int craftos_tmpfs_ferror(FILE * fp, craftos_machine_t machine);
 extern int craftos_tmpfs_remove(const char * path, craftos_machine_t machine);
 extern int craftos_tmpfs_rename(const char * from, const char * to, craftos_machine_t machine);
 extern int craftos_tmpfs_mkdir(const char * path, int mode, craftos_machine_t machine);
+extern int craftos_tmpfs_access(const char * path, int flags, craftos_machine_t machine);
 extern int craftos_tmpfs_stat(const char * path, struct craftos_stat * st, craftos_machine_t machine);
 extern int craftos_tmpfs_statvfs(const char * path, struct craftos_statvfs * st, craftos_machine_t machine);
 extern craftos_DIR * craftos_tmpfs_opendir(const char * path, craftos_machine_t machine);

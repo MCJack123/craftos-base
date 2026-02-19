@@ -14,6 +14,20 @@
 /* TODO */
 
 void craftos_event_timer(craftos_machine_t machine, int id) {
+    if (F.startTimer != NULL) {
+        struct craftos_alarm_list ** alarm;
+        for (alarm = &machine->alarms; *alarm; alarm = &(*alarm)->next) {
+            if ((*alarm)->id == id) {
+                struct craftos_alarm_list * a = *alarm;
+                *alarm = a->next;
+                F.free(a);
+                craftos_machine_queue_event(machine, "alarm", "i", id);
+                return;
+            }
+        }
+    } else {
+        /* TODO: software timers */
+    }
     craftos_machine_queue_event(machine, "timer", "i", id);
 }
 

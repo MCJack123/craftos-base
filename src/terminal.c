@@ -12,6 +12,7 @@
 #include "types.h"
 #include "terminal.h"
 #include "font.h"
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -146,9 +147,14 @@ void craftos_terminal_render(craftos_terminal_t term, void * framebuffer, size_t
     void * line;
     unsigned char c;
     int cx = term->cursorX;
+    int blink = fmod(F.timestamp(), 1000.0) >= 500.0;
     switch (depth) {
         case 4: case 8: case 16: case 24: case 32: break;
         default: return;
+    }
+    if (term->canBlink && blink != term->blink) {
+        term->blink = blink;
+        term->changed = 1;
     }
     if (term->paletteChanged) {
         term->paletteChanged = 0;
@@ -177,7 +183,25 @@ void craftos_terminal_render(craftos_terminal_t term, void * framebuffer, size_t
                     case 32: ((unsigned int *)line)[x] = v; break;
                 }
             }
-            if (term->blink && y / scaleY == term->cursorY * 9 + 7 && cx >= 0 && cx < term->width * 6 * scaleX) memset(line + cx * 6 * scaleX, term->palette[term->cursorColor], 6 * scaleX);
+            if (term->blink && y / scaleY == term->cursorY * 9 + 7 && cx >= 0 && cx < term->width * 6 * scaleX) {
+                v = term->palette[term->cursorColor];
+                for (x = cx * 6 * scaleX; x < (cx + 1) * 6 * scaleX - scaleX; x++) {
+                    switch (depth) {
+                        case 4:
+                            if (x % 2) ((unsigned char *)line)[x / 2] |= (v & 0xF);
+                            else ((unsigned char *)line)[x / 2] = (v & 0xF) << 4;
+                            break;
+                        case 8: ((unsigned char *)line)[x] = (v & 0xFF); break;
+                        case 16: ((unsigned short *)line)[x] = (v & 0xFFFF); break;
+                        case 24:
+                            ((unsigned char *)line)[x * 3] = v & 0xFF;
+                            ((unsigned char *)line)[x * 3 + 1] = (v & 0xFF00) >> 8;
+                            ((unsigned char *)line)[x * 3 + 2] = (v & 0xFF0000) >> 16;
+                            break;
+                        case 32: ((unsigned int *)line)[x] = v; break;
+                    }
+                }
+            }
         }
     }
 }

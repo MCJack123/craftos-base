@@ -1,5 +1,5 @@
 # craftos-base
-A common library implementing a basic ComputerCraft emulator. For use in emulators running on all sorts of systems.
+A common library implementing a basic ComputerCraft emulator in ANSI C. For use in emulators running on all sorts of systems.
 
 ## Usage
 This library is meant to be included into a platform-specific application, which implements the required functions for input/output and other non-portable components.
@@ -7,7 +7,7 @@ This library is meant to be included into a platform-specific application, which
 Include the library using CMake:
 ```cmake
 add_subdirectory(craftos-base)
-target_link_libraries(project INTERFACE craftos-base::craftos-base)
+target_link_libraries(project INTERFACE craftos-base)
 ```
 
 You must call `craftos_init` before using craftos-base. This takes a structure of function pointers which implement OS routines. Most of the entries are optional for basic functionality, but some are required, so make sure those are implemented. Initialize the structure with `NULL`s before use.
@@ -22,7 +22,7 @@ The emulator supports a few extension abilities to provide extra functionality:
 - Use `craftos_machine_peripheral_attach` to attach a peripheral to a side. This can be used to emulate special peripheral types. See the function's docs for more information on how this works.
 - The `craftos_tmpfs.h` header provides a custom in-memory filesystem routine set which can be used on systems which lack working `stdio.h` functionality.
 
-See `include/craftos.h` for a full list of all OS functions that can be implemented.
+See `include/craftos.h` for a full list of all OS functions that can be implemented. See `example/craftos-lite.c` for a working example using SDL3, libcurl and POSIX as a backend.
 
 ## License
 craftos-base is licensed under the MIT license.

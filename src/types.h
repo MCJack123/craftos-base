@@ -65,6 +65,11 @@ struct craftos_api_list {
     const struct luaL_Reg * funcs;
 };
 
+struct websocket_handle {
+    char* url;
+    craftos_http_websocket_t handle;
+};
+
 /** The global OS function table. */
 extern struct craftos_func F;
 

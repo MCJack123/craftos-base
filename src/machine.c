@@ -189,7 +189,7 @@ craftos_status_t craftos_machine_run(craftos_machine_t machine) {
         
         lua_pushliteral(coro, "");
         lua_setglobal(coro, "_CC_DEFAULT_SETTINGS");
-        lua_pushliteral(coro, "ComputerCraft 1.109.2 (CraftOS-Base 1.0)");
+        lua_pushliteral(coro, "ComputerCraft " CRAFTOS_CC_VERSION " (CraftOS-Base " CRAFTOS_BASE_VERSION ")");
         lua_setglobal(coro, "_HOST");
         lua_pushnil(coro); lua_setglobal(coro, "package");
         lua_pushnil(coro); lua_setglobal(coro, "require");
