@@ -324,6 +324,7 @@ int craftos_machine_queue_event(craftos_machine_t machine, const char * event, c
                     luaL_setfuncs(ev, va_arg(va, const luaL_Reg*), 1);
                     lua_remove(ev, -2);
                     break;
+                case 'v': lua_xmove(va_arg(va, lua_State*), ev, 1); break;
             }
         }
     }

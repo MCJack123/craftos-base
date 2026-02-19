@@ -764,6 +764,7 @@ extern craftos_status_t craftos_machine_run(craftos_machine_t machine);
  * - `r`: `luaL_Reg*` with functions to put in a table onto the queue
  * - `R`: `luaL_Reg*` with functions to put in a table onto the queue, consuming
  *        an upvalue pushed before this
+ * - `v`: pop value from `lua_State*` parameter
  * For pointer types (`zsFR`), `NULL` values will be converted to `nil`.
  * 
  * This function is not safe to call in interrupts, as it interacts with the Lua
