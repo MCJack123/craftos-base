@@ -211,6 +211,7 @@ typedef struct craftos_machine {
     };
     struct craftos_api_list * apis;
     int modifiers;
+    int nextTimerID;
 } * craftos_machine_t;
 
 /** Holds all the function pointers required by the implementation. */

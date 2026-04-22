@@ -56,7 +56,22 @@ int os_startTimer(lua_State *L) {
     if (F.startTimer != NULL)
         lua_pushinteger(L, F.startTimer(_time * 1000, computer));
     else {
-        /* TODO: implement software timers */
+        int id = computer->nextTimerID++;
+        struct craftos_sw_timer_list ** node = &computer->timers, * next;
+        double deadline = F.timestamp() + _time * 1000.0;
+        while (*node != NULL && (*node)->deadline < deadline)
+            node = &(*node)->next;
+        next = *node;
+        *node = F.malloc(sizeof(struct craftos_sw_timer_list));
+        if (*node == NULL) {
+            *node = next;
+            return luaL_error(L, "could not allocate memory");
+        }
+        (*node)->next = next;
+        (*node)->id = id;
+        (*node)->deadline = deadline;
+        (*node)->isAlarm = 0;
+        lua_pushinteger(L, id);
     }
     return 1;
 }
@@ -70,7 +85,14 @@ int os_cancelTimer(lua_State *L) {
             if ((*alarm)->id == id) return 0;
         F.cancelTimer(id, computer);
     } else {
-        /* TODO: implement software timers */
+        int id = computer->nextTimerID++;
+        struct craftos_sw_timer_list ** node = &computer->timers, * next;
+        while (*node != NULL && ((*node)->id != id || (*node)->isAlarm))
+            node = &(*node)->next;
+        if (*node == NULL) return 0;
+        next = (*node)->next;
+        F.free(*node);
+        *node = next;
     }
     return 0;
 }
@@ -179,7 +201,22 @@ static int os_setAlarm(lua_State *L) {
         alarm->id = id;
         computer->alarms = alarm;
     } else {
-        /* TODO: implement software timers */
+        int id = computer->nextTimerID++;
+        struct craftos_sw_timer_list ** node = &computer->timers, * next;
+        double deadline = F.timestamp() + real_time * 1000.0;
+        while (*node != NULL && (*node)->deadline < deadline)
+            node = &(*node)->next;
+        next = *node;
+        *node = F.malloc(sizeof(struct craftos_sw_timer_list));
+        if (*node == NULL) {
+            *node = next;
+            return luaL_error(L, "could not allocate memory");
+        }
+        (*node)->next = next;
+        (*node)->id = id;
+        (*node)->deadline = deadline;
+        (*node)->isAlarm = 1;
+        lua_pushinteger(L, id);
     }
     return 1;
 }
@@ -199,7 +236,14 @@ static int os_cancelAlarm(lua_State *L) {
             }
         }
     } else {
-        /* TODO: implement software timers */
+        int id = computer->nextTimerID++;
+        struct craftos_sw_timer_list ** node = &computer->timers, * next;
+        while (*node != NULL && ((*node)->id != id || !(*node)->isAlarm))
+            node = &(*node)->next;
+        if (*node == NULL) return 0;
+        next = (*node)->next;
+        F.free(*node);
+        *node = next;
     }
     return 0;   
 }

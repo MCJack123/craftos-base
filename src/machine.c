@@ -95,6 +95,8 @@ craftos_machine_t craftos_machine_create(const craftos_machine_config_t * config
     machine->peripherals = NULL;
     machine->alarms = NULL;
     machine->apis = NULL;
+    machine->modifiers = 0;
+    machine->nextTimerID = 0;
 
     if (craftos_machine_mount_real(machine, config->base_path, "/", 0) != 0) {
         craftos_machine_destroy(machine);
@@ -149,12 +151,22 @@ void craftos_machine_destroy(craftos_machine_t machine) {
 
 static int getNextEvent(craftos_machine_t machine, lua_State *L, const char * filter) {
     lua_State *event = NULL;
+    int count;
     do {
         if (event) lua_remove(machine->eventQueue, 1);
+        if (F.startTimer == NULL || F.cancelTimer == NULL) {
+            double now = F.timestamp();
+            while (machine->timers != NULL && machine->timers->deadline <= now) {
+                struct craftos_sw_timer_list * next = machine->timers->next;
+                craftos_machine_queue_event(machine, machine->timers->isAlarm ? "alarm" : "timer", "i", machine->timers->id);
+                F.free(machine->timers);
+                machine->timers = next;
+            }
+        }
         if (lua_gettop(machine->eventQueue) == 0) return -1;
         event = lua_tothread(machine->eventQueue, 1);
     } while (filter != NULL && strcmp(lua_tostring(event, 1), filter) != 0 && strcmp(lua_tostring(event, 1), "terminate") != 0);
-    int count = lua_gettop(event);
+    count = lua_gettop(event);
     lua_xmove(event, L, count);
     lua_remove(machine->eventQueue, 1);
     return count;
