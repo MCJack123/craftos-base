@@ -210,6 +210,7 @@ typedef struct craftos_machine {
         struct craftos_sw_timer_list * timers;
     };
     struct craftos_api_list * apis;
+    int modifiers;
 } * craftos_machine_t;
 
 /** Holds all the function pointers required by the implementation. */
@@ -850,6 +851,19 @@ extern int craftos_machine_peripheral_detach(craftos_machine_t machine, const ch
  * @param scaleY The scale to render the text at in the Y direction
  */
 extern void craftos_terminal_render(craftos_terminal_t term, void * framebuffer, size_t stride, int depth, int scaleX, int scaleY);
+
+/**
+ * Renders a terminal to a rotated framebuffer. The first pixel of the
+ * framebuffer is in the bottom-left corner, and the last pixel of the first
+ * line is in the top-left corner.
+ * @param term The terminal to render
+ * @param framebuffer The memory region for the framebuffer
+ * @param stride The number of bytes in each vertical line in the framebuffer
+ * @param depth The bit depth for the screen (must be one of 4, 8, 16, 24, 32)
+ * @param scaleX The scale to render the text at in the X direction
+ * @param scaleY The scale to render the text at in the Y direction
+ */
+extern void craftos_terminal_render_rot90(craftos_terminal_t term, void * framebuffer, size_t stride, int depth, int scaleX, int scaleY);
 
 /**
  * Renders a terminal to a 4-bit planar VGA framebuffer.

@@ -87,4 +87,4 @@ install(EXPORT craftosbaseTargets
     DESTINATION lib/cmake/craftosbase
 )
 
-add_subdirectory(example)
+#add_subdirectory(example)

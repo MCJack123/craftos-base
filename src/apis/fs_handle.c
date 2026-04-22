@@ -8,6 +8,13 @@
 #include <lua.h>
 #include <lauxlib.h>
 
+#ifdef feof
+#undef feof
+#endif
+#ifdef ferror
+#undef ferror
+#endif
+
 int fs_handle_close(lua_State *L) {
     FILE ** fp = (FILE**)lua_touserdata(L, lua_upvalueindex(1));
     if (*fp == NULL)

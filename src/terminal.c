@@ -206,6 +206,53 @@ void craftos_terminal_render(craftos_terminal_t term, void * framebuffer, size_t
     }
 }
 
+void craftos_terminal_render_rot90(craftos_terminal_t term, void * framebuffer, size_t stride, int depth, int scaleX, int scaleY) {
+    unsigned int y, x, ty, cp, v;
+    void * line;
+    unsigned char c;
+    int cx = term->cursorX;
+    int blink = fmod(F.timestamp(), 1000.0) >= 500.0;
+    switch (depth) {
+        case 4: case 8: case 16: case 24: case 32: break;
+        default: return;
+    }
+    if (term->canBlink && blink != term->blink) {
+        term->blink = blink;
+        term->changed = 1;
+    }
+    if (term->paletteChanged) {
+        term->paletteChanged = 0;
+        for (y = 0; y < 16; y++) term->pixelPalette[y] = F.convertPixelValue(y, (term->palette[y] >> 16) & 0xFF, (term->palette[y] >> 8) & 0xFF, term->palette[y] & 0xFF);
+    }
+    if (term->changed) {
+        term->changed = 0;
+        for (x = 0; x < term->width * 6 * scaleX; x++) {
+            line = framebuffer + x*stride;
+            for (y = 0; y < term->height * 9 * scaleY; y++) {
+                ty = term->height * 9 * scaleY - y - 1;
+                cp = (ty / 9 / scaleY) * term->width + (x / 6 / scaleX);
+                c = term->screen[cp];
+                if (term->blink && ty / scaleY == term->cursorY * 9 + 7 && x >= cx * 6 * scaleX && x < (cx + 1) * 6 * scaleX) v = term->pixelPalette[term->cursorColor];
+                else v = font_data[((c >> 4) * 9 + ((ty % (9 * scaleY)) / scaleY)) * 96 + ((c & 0xF) * 6 + ((x % (6 * scaleX)) / scaleX))] ? term->pixelPalette[term->colors[cp] & 0x0F] : term->pixelPalette[term->colors[cp] >> 4];
+                switch (depth) {
+                    case 4:
+                        if (x % 2) ((unsigned char *)line)[y / 2] |= (v & 0xF);
+                        else ((unsigned char *)line)[y / 2] = (v & 0xF) << 4;
+                        break;
+                    case 8: ((unsigned char *)line)[y] = (v & 0xFF); break;
+                    case 16: ((unsigned short *)line)[y] = (v & 0xFFFF); break;
+                    case 24:
+                        ((unsigned char *)line)[y * 3] = v & 0xFF;
+                        ((unsigned char *)line)[y * 3 + 1] = (v & 0xFF00) >> 8;
+                        ((unsigned char *)line)[y * 3 + 2] = (v & 0xFF0000) >> 16;
+                        break;
+                    case 32: ((unsigned int *)line)[y] = v; break;
+                }
+            }
+        }
+    }
+}
+
 void craftos_terminal_render_vga4p(craftos_terminal_t term, void * framebuffer, size_t stride, size_t height) {
 
 }

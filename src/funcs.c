@@ -106,7 +106,9 @@ static struct craftos_dirent * wrap_readdir(craftos_DIR * dir, craftos_machine_t
     struct dirent * d = readdir((DIR *)dir);
     if (d == NULL) return NULL;
     dr.d_ino = d->d_ino;
+#if _DIRENT_HAVE_D_RECLEN
     dr.d_reclen = d->d_reclen;
+#endif
     dr.d_type = d->d_type;
 #if _DIRENT_HAVE_D_NAMLEN
     dr.d_namlen = d->d_namlen;

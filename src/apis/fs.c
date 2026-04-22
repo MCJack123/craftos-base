@@ -17,6 +17,13 @@
 #endif
 #endif
 
+#ifdef feof
+#undef feof
+#endif
+#ifdef ferror
+#undef ferror
+#endif
+
 extern int fs_handle_close(lua_State *L);
 extern int fs_handle_gc(lua_State *L);
 extern int fs_handle_readAll(lua_State *L);
@@ -436,7 +443,10 @@ static int fs_exists(lua_State *L) {
 static int fs_isDir(lua_State *L) {
     const struct craftos_mount_list * mount;
     char* path = fixpath(get_comp(L), luaL_checkstring(L, 1), 1, 1, &mount);
-    if (path != NULL && mount->flags & MOUNT_FLAG_MMFS) {
+    if (path != NULL && (path[0] == 0 || (path[0] == '/' && path[1] == 0))) {
+        /* mount is always a directory */
+        lua_pushboolean(L, 1);
+    } if (path != NULL && mount->flags & MOUNT_FLAG_MMFS) {
         const struct mmfs_dir_ent * ent;
         lua_pushboolean(L, (ent = mmfs_traverse(mount->root_dir, path)) != NULL && ent->is_dir);
     } else {
