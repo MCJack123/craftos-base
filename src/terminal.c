@@ -232,7 +232,7 @@ void craftos_terminal_render_rot90(craftos_terminal_t term, void * framebuffer, 
                 ty = term->height * 9 * scaleY - y - 1;
                 cp = (ty / 9 / scaleY) * term->width + (x / 6 / scaleX);
                 c = term->screen[cp];
-                if (term->blink && ty / scaleY == term->cursorY * 9 + 7 && x >= cx * 6 * scaleX && x < (cx + 1) * 6 * scaleX) v = term->pixelPalette[term->cursorColor];
+                if (term->canBlink && term->blink && ty / scaleY == term->cursorY * 9 + 7 && x >= cx * 6 * scaleX && x < (cx + 1) * 6 * scaleX) v = term->pixelPalette[term->cursorColor];
                 else v = font_data[((c >> 4) * 9 + ((ty % (9 * scaleY)) / scaleY)) * 96 + ((c & 0xF) * 6 + ((x % (6 * scaleX)) / scaleX))] ? term->pixelPalette[term->colors[cp] & 0x0F] : term->pixelPalette[term->colors[cp] >> 4];
                 switch (depth) {
                     case 4:

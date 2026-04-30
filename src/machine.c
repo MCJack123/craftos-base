@@ -97,6 +97,7 @@ craftos_machine_t craftos_machine_create(const craftos_machine_config_t * config
     machine->apis = NULL;
     machine->modifiers = 0;
     machine->nextTimerID = 0;
+    machine->default_settings = config->default_settings ? config->default_settings : "";
 
     if (craftos_machine_mount_real(machine, config->base_path, "/", 0) != 0) {
         craftos_machine_destroy(machine);
@@ -199,7 +200,7 @@ craftos_status_t craftos_machine_run(craftos_machine_t machine) {
         lua_newtable(coro); luaL_setfuncs(coro, term_lib, 0); lua_setglobal(coro, "term");
         lua_pop(coro, 2);
         
-        lua_pushliteral(coro, "");
+        lua_pushstring(coro, machine->default_settings);
         lua_setglobal(coro, "_CC_DEFAULT_SETTINGS");
         lua_pushliteral(coro, "ComputerCraft " CRAFTOS_CC_VERSION " (CraftOS-Base " CRAFTOS_BASE_VERSION ")");
         lua_setglobal(coro, "_HOST");

@@ -184,6 +184,9 @@ typedef struct craftos_machine_config {
 
     /** The path to the computer's storage prefix on the filesystem. If unset, the whole filesystem will be used (equivalent to `"/"`). */
     const char * base_path;
+
+    /** The initial settings to use on the computer. */
+    const char * default_settings;
 } craftos_machine_config_t;
 
 /** Represents a computer machine instance. */
@@ -212,6 +215,7 @@ typedef struct craftos_machine {
     struct craftos_api_list * apis;
     int modifiers;
     int nextTimerID;
+    const char * default_settings;
 } * craftos_machine_t;
 
 /** Holds all the function pointers required by the implementation. */
