@@ -49,9 +49,21 @@ list(APPEND SOURCES ${LUA_SOURCES})
 # Check for optional headers
 include(CheckIncludeFile)
 check_include_file(sys/stat.h HAVE_SYS_STAT_H)
+if(NOT HAVE_SYS_STAT_H)
+    set(HAVE_SYS_STAT_H 0)
+endif()
 check_include_file(sys/statvfs.h HAVE_SYS_STATVFS_H)
+if(NOT HAVE_SYS_STATVFS_H)
+    set(HAVE_SYS_STATVFS_H 0)
+endif()
 check_include_file(unistd.h HAVE_UNISTD_H)
+if(NOT HAVE_UNISTD_H)
+    set(HAVE_UNISTD_H 0)
+endif()
 check_include_file(dirent.h HAVE_DIRENT_H)
+if(NOT HAVE_DIRENT_H)
+    set(HAVE_DIRENT_H 0)
+endif()
 
 # Create config.h
 configure_file(

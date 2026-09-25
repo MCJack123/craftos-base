@@ -26,6 +26,7 @@ struct luaL_Reg; /* silences warning */
 #endif
 #ifndef lua_h
 struct lua_State; /* silences warning */
+typedef void * (*lua_Alloc) (void *ud, void *ptr, size_t osize, size_t nsize);
 #endif
 
 struct craftos_mount_list;
@@ -187,6 +188,12 @@ typedef struct craftos_machine_config {
 
     /** The initial settings to use on the computer. */
     const char * default_settings;
+
+    /** A custom allocator function for Lua states. If unset, will fall back to an allocator using craftos_func.realloc. */
+    lua_Alloc allocator;
+
+    /** A userdata pointer to pass to the allocator. */
+    void* allocator_ud;
 } craftos_machine_config_t;
 
 /** Represents a computer machine instance. */
@@ -216,6 +223,8 @@ typedef struct craftos_machine {
     int modifiers;
     int nextTimerID;
     const char * default_settings;
+    lua_Alloc allocator;
+    void* allocator_ud;
 } * craftos_machine_t;
 
 /** Holds all the function pointers required by the implementation. */
@@ -477,7 +486,7 @@ typedef struct craftos_func {
      * An implementation of POSIX `access` for machine use. If set to NULL, and
      * a compatible `access` is available, it will be used instead. Otherwise,
      * `craftos_init` will fail.
-     * @param from The path to the directory to create
+     * @param from The path to the file to check
      * @param mode The flags to use (usually W_OK = 2)
      * @param machine The machine operating on the file
      * @return 0 on success, non-0 on error

@@ -79,13 +79,13 @@ static int log2i(unsigned int n) {
 
 int term_setTextColor(lua_State *L) {
     craftos_machine_t machine = get_comp(L);
-    machine->term->activeColors = (machine->term->activeColors & 0xF0) | ((int)log2(luaL_checkinteger(L, 1)) & 0x0F);
+    machine->term->activeColors = (machine->term->activeColors & 0xF0) | ((int)log2i(luaL_checkinteger(L, 1)) & 0x0F);
     return 0;
 }
 
 int term_setBackgroundColor(lua_State *L) {
     craftos_machine_t machine = get_comp(L);
-    machine->term->activeColors = (machine->term->activeColors & 0x0F) | (((int)log2(luaL_checkinteger(L, 1)) & 0x0F) << 4);
+    machine->term->activeColors = (machine->term->activeColors & 0x0F) | (((int)log2i(luaL_checkinteger(L, 1)) & 0x0F) << 4);
     return 0;
 }
 

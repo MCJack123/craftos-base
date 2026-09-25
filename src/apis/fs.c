@@ -79,7 +79,7 @@ static char* assemblePath(const char * base, const struct string_list * path) {
     return retval;
 }
 
-static char* fixpath(craftos_machine_t comp, const char * path, int exists, int addExt, const struct craftos_mount_list ** mount) {
+char* fixpath(craftos_machine_t comp, const char * path, int exists, int addExt, const struct craftos_mount_list ** mount) {
     char* ss;
     struct string_list pathc = {NULL, NULL};
     if (string_split_path(path, &pathc, addExt) != 0) return NULL;

@@ -9,6 +9,7 @@
  */
 
 #include <craftos.h>
+#include "mmfs.h"
 #include "string_list.h"
 #include "terminal.h"
 #include "types.h"
@@ -26,6 +27,7 @@ extern const luaL_Reg os_lib[];
 extern const luaL_Reg peripheral_lib[];
 extern const luaL_Reg rs_lib[];
 extern const luaL_Reg term_lib[];
+extern char* fixpath(craftos_machine_t comp, const char * path, int exists, int addExt, const struct craftos_mount_list ** mount);
 
 void _lua_lock(lua_State *L) {
     if (G(L)->lockstate == 2 || G(L)->lock == NULL) return;
@@ -63,6 +65,13 @@ craftos_machine_t get_comp(lua_State *L) {
     return lastM;
 }
 
+static void* default_alloc(void *ud, void *ptr, size_t osize, size_t nsize) {
+    if (ptr != NULL && nsize == 0) {F.free(ptr); return NULL;}
+    if (ptr == NULL && nsize > 0) return F.malloc(nsize);
+    if (ptr != NULL && nsize > 0) return F.realloc(ptr, nsize);
+    return NULL;
+}
+
 craftos_machine_t craftos_machine_create(const craftos_machine_config_t * config) {
     if (F.timestamp == NULL) return NULL;
     craftos_machine_t machine = F.malloc(sizeof(struct craftos_machine));
@@ -98,6 +107,8 @@ craftos_machine_t craftos_machine_create(const craftos_machine_config_t * config
     machine->modifiers = 0;
     machine->nextTimerID = 0;
     machine->default_settings = config->default_settings ? config->default_settings : "";
+    machine->allocator = config->allocator ? config->allocator : default_alloc;
+    machine->allocator_ud = config->allocator_ud;
 
     if (craftos_machine_mount_real(machine, config->base_path, "/", 0) != 0) {
         craftos_machine_destroy(machine);
@@ -182,7 +193,7 @@ craftos_status_t craftos_machine_run(craftos_machine_t machine) {
         * All Lua contexts are held in this structure. We work with it almost
         * all the time.
         */
-        machine->L = luaL_newstate();
+        machine->L = lua_newstate(machine->allocator, machine->allocator_ud);
         
         machine->coro = coro = lua_newthread(machine->L);
         machine->eventQueue = lua_newthread(machine->L);
@@ -224,7 +235,45 @@ craftos_status_t craftos_machine_run(craftos_machine_t machine) {
         /* Load the file containing the script we are going to run */
         printf("Loading BIOS...\n");
         if (machine->bios) status = luaL_loadbuffer(coro, machine->bios, strlen(machine->bios), "@bios.lua");
-        else status = luaL_loadfile(coro, "/rom/bios.lua"); /* TODO: use wrapped file procedures */
+        else {
+            FILE* fp;
+            char* buf, *path;
+            size_t len;
+            const struct craftos_mount_list * mount;
+            path = fixpath(machine, "/rom/bios.lua", 1, 1, &mount);
+            if (path != NULL) {
+                if (mount->flags & MOUNT_FLAG_MMFS) {
+                    const struct mmfs_dir_ent * d = mmfs_traverse(mount->root_dir, path);
+                    if (d != NULL && !d->is_dir) {
+                        status = luaL_loadbuffer(coro, (const char*)mount->root_dir + d->offset, d->size, "@bios.lua");
+                    } else {
+                        status = LUA_ERRFILE;
+                        lua_pushliteral(coro, "cannot open /rom/bios.lua: No such file");
+                    }
+                } else {
+                    fp = F.fopen(path, "rb", machine);
+                    if (fp != NULL) {
+                        buf = F.malloc(65536); /* should be enough to hold the BIOS */
+                        len = F.fread(buf, 1, 65536, fp, machine);
+                        F.fclose(fp, machine);
+                        if (len >= 0) {
+                            status = luaL_loadbuffer(coro, buf, len, "@bios.lua");
+                        } else {
+                            status = LUA_ERRFILE;
+                            lua_pushfstring(coro, "cannot open /rom/bios.lua: %s", strerror(-len));
+                        }
+                        F.free(buf);
+                    } else {
+                        status = LUA_ERRFILE;
+                        lua_pushliteral(coro, "cannot open /rom/bios.lua");
+                    }
+                }
+                F.free(path);
+            } else {
+                status = LUA_ERRFILE;
+                lua_pushliteral(coro, "cannot open /rom/bios.lua: No such file");
+            }
+        }
         if (status) {
             /* If something went wrong, error message is at the top of */
             /* the stack */
