@@ -32,6 +32,7 @@ void string_list_pop(struct string_list * list) {
     struct string_list_node * next;
     if (!list->head) return;
     next = list->tail->prev;
+    next->next = NULL;
     F.free(list->tail->str);
     F.free(list->tail);
     if ((list->tail = next) == NULL) list->head = NULL;
@@ -42,6 +43,7 @@ char* string_list_pop_str(struct string_list * list) {
     char* retval;
     if (!list->head) return NULL;
     next = list->tail->prev;
+    next->next = NULL;
     retval = list->tail->str;
     F.free(list->tail);
     if ((list->tail = next) == NULL) list->head = NULL;
@@ -69,6 +71,7 @@ void string_list_shift(struct string_list * list) {
     struct string_list_node * next;
     if (!list->head) return;
     next = list->head->next;
+    next->prev = NULL;
     F.free(list->head->str);
     F.free(list->head);
     if ((list->head = next) == NULL) list->tail = NULL;
@@ -79,6 +82,7 @@ char* string_list_shift_str(struct string_list * list) {
     char* str;
     if (!list->head) return NULL;
     next = list->head->next;
+    next->prev = NULL;
     str = list->head->str;
     F.free(list->head);
     if ((list->head = next) == NULL) list->tail = NULL;
