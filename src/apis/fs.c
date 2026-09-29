@@ -128,7 +128,7 @@ char* fixpath(craftos_machine_t comp, const char * path, int exists, int addExt,
             for (i = 0; i < max_path_l_n; i++) {
                 if (max_path_l[i]->flags & MOUNT_FLAG_MMFS) {
                     char* fullpath = assemblePath("", &pathc);
-                    if (mmfs_traverse(max_path_l[i]->root_dir, fullpath) != NULL) {
+                    if (fullpath[0] == 0 || mmfs_traverse(max_path_l[i]->root_dir, fullpath) != NULL) {
                         ss = fullpath;
                         if (mount) *mount = max_path_l[i];
                         found = 1;
@@ -156,7 +156,7 @@ char* fixpath(craftos_machine_t comp, const char * path, int exists, int addExt,
                 for (i = 0; i < max_path_l_n; i++) {
                     if (max_path_l[i]->flags & MOUNT_FLAG_MMFS) {
                         char* fullpath = assemblePath("", &pathc);
-                        if (mmfs_traverse(max_path_l[i]->root_dir, fullpath) != NULL) {
+                        if (fullpath[0] == 0 || mmfs_traverse(max_path_l[i]->root_dir, fullpath) != NULL) {
                             ss = assemblePath(fullpath, &oldback);
                             F.free(fullpath);
                             if (mount) *mount = max_path_l[i];
@@ -223,6 +223,7 @@ char* fixpath(craftos_machine_t comp, const char * path, int exists, int addExt,
 static int fixpath_ro(craftos_machine_t comp, const char * path) {
     const struct craftos_mount_list * mount;
     char* p = fixpath(comp, path, 1, 1, &mount);
+    if (p == NULL) return 0;
     F.free(p);
     return mount->flags & MOUNT_FLAG_RO;
 }
@@ -270,7 +271,8 @@ static char* fixpath_mkdir(craftos_machine_t comp, const char * path, int md, co
         F.free(pathfix);
     }
     string_list_clear(&pathc);
-    return maxPath;
+    F.free(maxPath);
+    return fixpath(comp, path, 0, 1, mount);
 }
 
 struct fixpath_multiple {
@@ -446,7 +448,7 @@ static int fs_isDir(lua_State *L) {
     if (path != NULL && (path[0] == 0 || (path[0] == '/' && path[1] == 0))) {
         /* mount is always a directory */
         lua_pushboolean(L, 1);
-    } if (path != NULL && mount->flags & MOUNT_FLAG_MMFS) {
+    } else if (path != NULL && mount->flags & MOUNT_FLAG_MMFS) {
         const struct mmfs_dir_ent * ent;
         lua_pushboolean(L, (ent = mmfs_traverse(mount->root_dir, path)) != NULL && ent->is_dir);
     } else {
@@ -477,7 +479,7 @@ static int fs_isReadOnly(lua_State *L) {
 static int fs_getName(lua_State *L) {
     char* path = normalizePath(luaL_checkstring(L, 1), 1);
     char* retval = strrchr(path, '/');
-    if (retval == NULL) lua_pushliteral(L, "root");
+    if (retval == NULL) lua_pushstring(L, path);
     else lua_pushstring(L, retval + 1);
     F.free(path);
     return 1;
