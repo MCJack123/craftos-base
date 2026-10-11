@@ -451,7 +451,29 @@ int craftos_machine_mount_mmfs(craftos_machine_t machine, const void * src, cons
 }
 
 int craftos_machine_unmount(craftos_machine_t machine, const char * path) {
-
+    struct string_list pathc = {NULL, NULL};
+    int n, ok;
+    struct string_list_node * node;
+    struct craftos_mount_list ** mnt, * temp;
+    if (string_split_path(path, &pathc, 1) != 0) return -1;
+    for (mnt = &machine->mounts; *mnt; mnt = &(*mnt)->next) {
+        ok = 1;
+        for (node = pathc.head, n = 0; node; node = node->next, n++) {
+            if ((*mnt)->mount_path[n] == NULL || strcmp((*mnt)->mount_path[n], node->str) != 0) {
+                ok = 0;
+                break;
+            }
+        }
+        if (ok && (*mnt)->mount_path[n] == NULL) {
+            temp = *mnt;
+            *mnt = temp->next;
+            F.free(temp->filesystem_path);
+            for (n = 0; temp->mount_path[n]; n++) F.free(temp->mount_path[n]);
+            F.free(temp->mount_path);
+            return 0;
+        }
+    }
+    return 1;
 }
 
 int craftos_machine_peripheral_attach(craftos_machine_t machine, const char * side, const char ** types, const struct luaL_Reg * funcs, void * userp) {
