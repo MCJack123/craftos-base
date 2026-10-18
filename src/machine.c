@@ -491,12 +491,13 @@ int craftos_machine_peripheral_attach(craftos_machine_t machine, const char * si
 int craftos_machine_peripheral_detach(craftos_machine_t machine, const char * side) {
     struct craftos_peripheral_list ** peripherals = &machine->peripherals;
     while (*peripherals) {
+        struct craftos_peripheral_list * next = (*peripherals)->next;
         if (strcmp((*peripherals)->side, side) == 0) {
-            struct craftos_peripheral_list * next = (*peripherals)->next;
             F.free(*peripherals);
             *peripherals = next;
             return 0;
         }
+        *peripherals = next;
     }
     return -1;
 }
